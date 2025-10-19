@@ -1,0 +1,306 @@
+package commands
+
+import (
+	"context"
+	"fmt"
+	"os"
+	"sort"
+	"strings"
+	"time"
+
+	"github.com/fatih/color"
+	"github.com/moweilong/milady/pkg/gobash"
+	"github.com/moweilong/milady/pkg/gofile"
+	"github.com/moweilong/milady/pkg/utils"
+	"github.com/spf13/cobra"
+)
+
+// UpgradeCommand upgrade milady binaries
+func UpgradeCommand() *cobra.Command {
+	var targetVersion string
+
+	cmd := &cobra.Command{
+		Use:   "upgrade",
+		Short: "Upgrade milady version",
+		Long:  "Upgrade milady version.",
+		Example: color.HiBlackString(`  # Upgrade to latest version
+  milady upgrade
+
+  # Upgrade to specified version
+  milady upgrade --version=v1.5.6`),
+		SilenceErrors: true,
+		SilenceUsage:  true,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if targetVersion == "" {
+				targetVersion = latestVersion
+			}
+			ver, err := runUpgrade(targetVersion)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("upgraded version to %s successfully.\n", ver)
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&targetVersion, "version", "v", latestVersion, "upgrade milady version")
+	return cmd
+}
+
+func runUpgrade(targetVersion string) (string, error) {
+	runningTip := "Upgrading milady binary"
+	finishTip := "Upgrade milady binary done" + installedSymbol
+	failedTip := "Upgrade milady binary failed" + lackSymbol
+	p := utils.NewWaitPrinter(time.Millisecond * 100)
+	p.LoopPrint(runningTip)
+	err := runUpgradeCommand(targetVersion)
+	if err != nil {
+		p.StopPrint(failedTip + "\nError: " + err.Error())
+		return "", err
+	}
+	p.StopPrint(finishTip)
+
+	runningTip = "upgrading template code "
+	finishTip = "upgrade template code done " + installedSymbol
+	failedTip = "upgrade template code failed " + lackSymbol
+	p = utils.NewWaitPrinter(time.Millisecond * 500)
+	p.LoopPrint(runningTip)
+	ver, err := copyToTempDir(targetVersion)
+	if err != nil {
+		p.StopPrint(failedTip + "\nError: " + err.Error())
+		return "", err
+	}
+	p.StopPrint(finishTip)
+
+	runningTip = "upgrading the built-in plugins of sponge "
+	finishTip = "upgrade the built-in plugins of sponge done " + installedSymbol
+	failedTip = "upgrade the built-in plugins of sponge failed " + lackSymbol
+	p = utils.NewWaitPrinter(time.Millisecond * 500)
+	p.LoopPrint(runningTip)
+	err = updateMiladyInternalPlugin(ver)
+	if err != nil {
+		p.StopPrint(failedTip + "\nError: " + err.Error())
+		return "", err
+	}
+	p.StopPrint(finishTip)
+	return ver, nil
+}
+
+// runUpgradeCommand upgrade milady binary
+func runUpgradeCommand(targetVersion string) error {
+	ctx, _ := context.WithTimeout(context.Background(), time.Minute*3) //nolint
+	spongeVersion := "github.com/moweilong/milady/cmd/milady@" + targetVersion
+	if compareVersion(separatedVersion, targetVersion) {
+		spongeVersion = strings.ReplaceAll(spongeVersion, "go-dev-frame", "zhufuyi")
+	}
+	result := gobash.Run(ctx, "go", "install", spongeVersion)
+	for v := range result.StdOut {
+		_ = v
+	}
+	if result.Err != nil {
+		return result.Err
+	}
+	return nil
+}
+
+// compareVersion compare two version strings
+// v1 >= v2 return true
+// v1 < v2 return false
+func compareVersion(v1, v2 string) bool {
+	if v1 == "latest" {
+		return true
+	}
+	if v2 == "latest" {
+		return false
+	}
+
+	v1 = strings.ReplaceAll(v1, "v", "")
+	v2 = strings.ReplaceAll(v2, "v", "")
+	v1s := strings.Split(v1, ".")
+	v2s := strings.Split(v2, ".")
+	if len(v1s) < 3 || len(v2s) < 3 {
+		return false
+	}
+
+	if v1s[0] != v2s[0] {
+		return utils.StrToInt(v1s[0]) > utils.StrToInt(v2s[0])
+	}
+
+	if v1s[1] != v2s[1] {
+		return utils.StrToInt(v1s[1]) > utils.StrToInt(v2s[1])
+	}
+
+	return utils.StrToInt(v1s[2]) > utils.StrToInt(v2s[2])
+}
+
+// copyToTempDir copy the template files to a temporary directory
+func copyToTempDir(targetVersion string) (string, error) {
+	result, err := gobash.Exec("go", "env", "GOPATH")
+	if err != nil {
+		return "", fmt.Errorf("execute command failed, %v", err)
+	}
+	gopath := strings.ReplaceAll(string(result), "\n", "")
+	if gopath == "" {
+		return "", fmt.Errorf("$GOPATH is empty, you need set $GOPATH in your $PATH")
+	}
+	delimiter := ":"
+	if gofile.IsWindows() {
+		delimiter = ";"
+	}
+	if ss := strings.Split(gopath, delimiter); len(ss) > 1 {
+		gopath = ss[0] // use the first $GOPATH
+	}
+
+	miladyDirName := ""
+	if targetVersion == latestVersion {
+		// find the new version of the milady code directory
+		arg := fmt.Sprintf("%s/pkg/mod/github.com/moweilong/milady", gopath)
+		// deprecated separatedVersion
+		// separatedVersion 大于 targetVersion, 需要替换为 bugsmo
+		if compareVersion(separatedVersion, targetVersion) {
+			arg = strings.ReplaceAll(arg, "moweilong", "bugsmo")
+		}
+		result, err = gobash.Exec("ls", adaptPathDelimiter(arg))
+		if err != nil {
+			return "", fmt.Errorf("execute command failed, %v", err)
+		}
+
+		miladyDirName = getLatestVersion(string(result))
+		if miladyDirName == "" {
+			return "", fmt.Errorf("not found milady directory in '$GOPATH/pkg/mod/github.com/moweilong'")
+		}
+	} else {
+		miladyDirName = "milady@" + targetVersion
+	}
+
+	srcDir := adaptPathDelimiter(fmt.Sprintf("%s/pkg/mod/github.com/moweilong/%s", gopath, miladyDirName))
+	if compareVersion(separatedVersion, targetVersion) {
+		srcDir = strings.ReplaceAll(srcDir, "moweilong", "bugsmo")
+	}
+	destDir := adaptPathDelimiter(GetMiladyDir() + "/")
+	targetDir := adaptPathDelimiter(destDir + ".milady")
+
+	err = executeCommand("rm", "-rf", targetDir)
+	if err != nil {
+		return "", err
+	}
+	err = executeCommand("cp", "-rf", srcDir, targetDir)
+	if err != nil {
+		return "", err
+	}
+	err = executeCommand("chmod", "-R", "744", targetDir)
+	if err != nil {
+		return "", err
+	}
+	_ = executeCommand("rm", "-rf", targetDir+"/cmd/milady")
+	_ = executeCommand("rm", "-rf", targetDir+"/cmd/protoc-gen-go-gin")
+	_ = executeCommand("rm", "-rf", targetDir+"/cmd/protoc-gen-go-rpc-tmpl")
+	_ = executeCommand("rm", "-rf", targetDir+"/cmd/protoc-gen-json-field")
+	_ = executeCommand("rm", "-rf", targetDir+"/pkg")
+	_ = executeCommand("rm", "-rf", targetDir+"/test")
+	_ = executeCommand("rm", "-rf", targetDir+"/assets")
+
+	versionNum := strings.Replace(miladyDirName, "milady@", "", 1)
+	err = os.WriteFile(versionFile, []byte(versionNum), 0644)
+	if err != nil {
+		return "", err
+	}
+
+	return versionNum, nil
+}
+
+// executeCommand execute command
+func executeCommand(name string, args ...string) error {
+	ctx, _ := context.WithTimeout(context.Background(), time.Second*30) //nolint
+	result := gobash.Run(ctx, name, args...)
+	for v := range result.StdOut {
+		_ = v
+	}
+	if result.Err != nil {
+		return fmt.Errorf("execute command failed, %v", result.Err)
+	}
+	return nil
+}
+
+// adaptPathDelimiter adapt path delimiter to windows
+func adaptPathDelimiter(filePath string) string {
+	if gofile.IsWindows() {
+		filePath = strings.ReplaceAll(filePath, "/", "\\")
+	}
+	return filePath
+}
+
+// getLatestVersion get the latest version of the milady code directory
+func getLatestVersion(s string) string {
+	var dirNames = make(map[int]string)
+	var nums []int
+
+	dirs := strings.Split(s, "\n")
+	for _, dirName := range dirs {
+		if strings.Contains(dirName, "milady@") {
+			tmp := strings.ReplaceAll(dirName, "milady@", "")
+			ss := strings.Split(tmp, ".")
+			if len(ss) != 3 {
+				continue
+			}
+			if strings.Contains(ss[2], "v0.0.0") {
+				continue
+			}
+			num := utils.StrToInt(ss[0])*10000 + utils.StrToInt(ss[1])*100 + utils.StrToInt(ss[2])
+			nums = append(nums, num)
+			dirNames[num] = dirName
+		}
+	}
+	if len(nums) == 0 {
+		return ""
+	}
+
+	sort.Ints(nums)
+	return dirNames[nums[len(nums)-1]]
+}
+
+func updateMiladyInternalPlugin(targetVersion string) error {
+	ctx, _ := context.WithTimeout(context.Background(), 3*time.Minute) //nolint
+	genGinVersion := "github.com/moweilong/milady/cmd/protoc-gen-go-gin@" + targetVersion
+	if compareVersion(separatedVersion, targetVersion) {
+		genGinVersion = strings.ReplaceAll(genGinVersion, "moweilong", "bugsmo")
+	}
+	result := gobash.Run(ctx, "go", "install", genGinVersion)
+	for v := range result.StdOut {
+		_ = v
+	}
+	if result.Err != nil {
+		return result.Err
+	}
+
+	ctx, _ = context.WithTimeout(context.Background(), 3*time.Minute) //nolint
+	genRPCVersion := "github.com/moweilong/milady/cmd/protoc-gen-go-rpc-tmpl@" + targetVersion
+	if compareVersion(separatedVersion, targetVersion) {
+		genRPCVersion = strings.ReplaceAll(genRPCVersion, "moweilong", "bugsmo")
+	}
+	result = gobash.Run(ctx, "go", "install", genRPCVersion)
+	for v := range result.StdOut {
+		_ = v
+	}
+	if result.Err != nil {
+		return result.Err
+	}
+
+	// v1.x.x version does not support protoc-gen-json-field
+	if !strings.HasPrefix(targetVersion, "v1") {
+		ctx, _ = context.WithTimeout(context.Background(), 3*time.Minute) //nolint
+		genJSONVersion := "github.com/moweilong/milady/cmd/protoc-gen-json-field@" + targetVersion
+		if compareVersion(separatedVersion, targetVersion) {
+			genJSONVersion = strings.ReplaceAll(genJSONVersion, "moweilong", "bugsmo")
+		}
+		result = gobash.Run(ctx, "go", "install", genJSONVersion)
+		for v := range result.StdOut {
+			_ = v
+		}
+		if result.Err != nil {
+			return result.Err
+		}
+	}
+
+	return nil
+}
