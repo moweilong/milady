@@ -76,4 +76,4 @@ jobs:
           go-version: 1.25.1
 
       - name: Build
-        run: make build && make build-sponge
+        run: make build && make build-milady
