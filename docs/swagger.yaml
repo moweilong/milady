@@ -1,0 +1,417 @@
+definitions:
+  errcode.ErrInfo:
+    properties:
+      code:
+        type: integer
+      msg:
+        type: string
+    type: object
+  github_com_go-dev-frame_sponge_internal_types.Column:
+    properties:
+      exp:
+        description: expressions, which default to = when the value is null, have
+          =, !=, >, >=, <, <=, like
+        type: string
+      logic:
+        description: logical type, default value is "and", support &, and, ||, or
+        type: string
+      name:
+        description: column name
+        type: string
+      value:
+        description: column value
+    type: object
+  github_com_go-dev-frame_sponge_internal_types.Params:
+    properties:
+      columns:
+        description: query conditions
+        items:
+          $ref: '#/definitions/github_com_go-dev-frame_sponge_internal_types.Column'
+        type: array
+      limit:
+        description: lines per page
+        type: integer
+      page:
+        description: page number, starting from page 0
+        type: integer
+      sort:
+        description: sorted fields, multi-column sorting separated by commas
+        type: string
+    type: object
+  handlerfunc.CheckHealthReply:
+    properties:
+      hostname:
+        type: string
+      status:
+        type: string
+    type: object
+  handlerfunc.PingReply:
+    type: object
+  types.CreateUserExampleReply:
+    properties:
+      code:
+        description: return code
+        type: integer
+      data:
+        description: return data
+        properties:
+          id:
+            description: id
+            type: integer
+        type: object
+      msg:
+        description: return information description
+        type: string
+    type: object
+  types.CreateUserExampleRequest:
+    properties:
+      age:
+        description: age
+        type: integer
+      avatar:
+        description: avatar
+        minLength: 5
+        type: string
+      email:
+        description: email
+        type: string
+      gender:
+        description: gender, 1:Male, 2:Female, other values:unknown
+        maximum: 2
+        minimum: 0
+        type: integer
+      name:
+        description: username
+        minLength: 2
+        type: string
+      password:
+        description: password
+        type: string
+      phone:
+        description: phone number, e164 rules, e.g. +8612345678901
+        type: string
+    type: object
+  types.DeleteUserExampleByIDReply:
+    properties:
+      code:
+        description: return code
+        type: integer
+      data:
+        description: return data
+      msg:
+        description: return information description
+        type: string
+    type: object
+  types.GetUserExampleByIDReply:
+    properties:
+      code:
+        description: return code
+        type: integer
+      data:
+        description: return data
+        properties:
+          userExample:
+            $ref: '#/definitions/types.UserExampleObjDetail'
+        type: object
+      msg:
+        description: return information description
+        type: string
+    type: object
+  types.ListUserExamplesReply:
+    properties:
+      code:
+        description: return code
+        type: integer
+      data:
+        description: return data
+        properties:
+          userExamples:
+            items:
+              $ref: '#/definitions/types.UserExampleObjDetail'
+            type: array
+        type: object
+      msg:
+        description: return information description
+        type: string
+    type: object
+  types.UpdateUserExampleByIDReply:
+    properties:
+      code:
+        description: return code
+        type: integer
+      data:
+        description: return data
+      msg:
+        description: return information description
+        type: string
+    type: object
+  types.UpdateUserExampleByIDRequest:
+    properties:
+      age:
+        description: age
+        type: integer
+      avatar:
+        description: avatar
+        type: string
+      email:
+        description: email
+        type: string
+      gender:
+        description: gender, 1:Male, 2:Female, other values:unknown
+        type: integer
+      id:
+        description: id
+        type: integer
+      name:
+        description: username
+        type: string
+      password:
+        description: password
+        type: string
+      phone:
+        description: phone number
+        type: string
+    type: object
+  types.UserExampleObjDetail:
+    properties:
+      age:
+        description: age
+        type: integer
+      avatar:
+        description: avatar
+        type: string
+      createdAt:
+        description: create time
+        type: string
+      email:
+        description: email
+        type: string
+      gender:
+        description: gender, 1:Male, 2:Female, other values:unknown
+        type: integer
+      id:
+        description: id
+        type: integer
+      loginAt:
+        description: login timestamp
+        type: integer
+      name:
+        description: username
+        type: string
+      phone:
+        description: phone number
+        type: string
+      status:
+        description: account status, 1:inactive, 2:activated, 3:blocked
+        type: integer
+      updatedAt:
+        description: update time
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: http server api docs
+  title: serverNameExample api docs
+  version: v1.0.0
+paths:
+  /api/v1/userExample:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new userExample entity using the provided data in the
+        request body.
+      parameters:
+      - description: userExample information
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/types.CreateUserExampleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.CreateUserExampleReply'
+      security:
+      - BearerAuth: []
+      summary: Create a new userExample
+      tags:
+      - userExample
+  /api/v1/userExample/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Deletes a existing userExample identified by the given id in the
+        path.
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.DeleteUserExampleByIDReply'
+      security:
+      - BearerAuth: []
+      summary: Delete a userExample by id
+      tags:
+      - userExample
+    get:
+      consumes:
+      - application/json
+      description: Gets detailed information of a userExample specified by the given
+        id in the path.
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.GetUserExampleByIDReply'
+      security:
+      - BearerAuth: []
+      summary: Get a userExample by id
+      tags:
+      - userExample
+    put:
+      consumes:
+      - application/json
+      description: Updates the specified userExample by given id in the path, support
+        partial update.
+      parameters:
+      - description: id
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: userExample information
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/types.UpdateUserExampleByIDRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.UpdateUserExampleByIDReply'
+      security:
+      - BearerAuth: []
+      summary: Update a userExample by id
+      tags:
+      - userExample
+  /api/v1/userExample/list:
+    post:
+      consumes:
+      - application/json
+      description: Returns a paginated list of userExample based on query filters,
+        including page number and size.
+      parameters:
+      - description: query parameters
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_go-dev-frame_sponge_internal_types.Params'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/types.ListUserExamplesReply'
+      security:
+      - BearerAuth: []
+      summary: Get a paginated list of userExamples by custom conditions
+      tags:
+      - userExample
+  /codes:
+    get:
+      consumes:
+      - application/json
+      description: Returns a list of all defined HTTP error codes and their descriptions
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of error codes
+          schema:
+            items:
+              $ref: '#/definitions/errcode.ErrInfo'
+            type: array
+      summary: list all error codes
+      tags:
+      - system
+  /config:
+    get:
+      consumes:
+      - application/json
+      description: Returns the current system configuration in JSON format. This includes
+        all runtime configuration parameters.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns the complete system configuration
+          schema:
+            additionalProperties: true
+            type: object
+      summary: get system configuration
+      tags:
+      - system
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: Returns system health information including status and hostname
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns health status information
+          schema:
+            $ref: '#/definitions/handlerfunc.CheckHealthReply'
+      summary: check system health status
+      tags:
+      - system
+  /ping:
+    get:
+      consumes:
+      - application/json
+      description: Simple ping endpoint to check if server is responsive
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Returns empty JSON object
+          schema:
+            $ref: '#/definitions/handlerfunc.PingReply'
+      summary: ping the server
+      tags:
+      - system
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerAuth:
+    description: Type Bearer your-jwt-token to Value
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

@@ -1,0 +1,74 @@
+package data
+
+import (
+	"fmt"
+	"strings"
+)
+
+const e = 2.7
+
+const (
+	MinRetries = 2
+	Timeout    = 1
+)
+
+func join() {
+	fmt.Println(strings.Join([]string{"a", "b", "c"}, ", "))
+}
+
+// x is a variable
+var x = 1
+
+var (
+	a = 1
+	y = 2
+)
+
+type person struct {
+	name string
+}
+
+// Say is a method
+func (p *person) Say() {
+	fmt.Println("Hello, my name is", p.name)
+}
+
+// Hi is a method
+func (p *person) Hi() {
+	fmt.Println("Hi, my name is", p.name)
+}
+
+type iSayer interface {
+	// Say is a method
+	Say()
+	// Hi is a method
+	Hi()
+}
+
+type iSayer2 interface {
+	// Say is a method
+	Say()
+}
+
+type sayer interface{}
+
+type (
+	fn1   func()
+	chan1 chan int
+)
+
+type _ func(name int) bool
+
+var _ = fn1(func() {})
+
+func Merge(slice [][]byte) {
+
+}
+
+func GetByID(id int) {
+
+}
+
+func init() {
+	fmt.Println("init")
+}

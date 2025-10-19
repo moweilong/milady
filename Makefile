@@ -16,11 +16,17 @@ install:
 	go install github.com/go-dev-frame/sponge/cmd/protoc-gen-go-rpc-tmpl@latest
 	go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
 	go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@latest
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 	go install github.com/swaggo/swag/cmd/swag@v1.8.12
-	go install github.com/ofabry/go-callvis@latest
+# 	go install github.com/ofabry/go-callvis@latest
 	go install golang.org/x/pkgsite/cmd/pkgsite@latest
 # delete the templates code end
+
+.PHONY: ci-lint
+# Check code formatting, naming conventions, security, maintainability, etc. the rules in the .golangci.yml file
+ci-lint:
+	@gofmt -s -w .
+	golangci-lint run ./...
 
 .PHONY: build
 # Build serverNameExample_mixExample for linux amd64 binary

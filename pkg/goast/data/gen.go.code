@@ -1,0 +1,105 @@
+package data
+
+import (
+	// this is a comment
+	"bytes"
+)
+
+import "fmt"
+
+// pi is a constant
+const pi = 3.14
+
+// new const
+const (
+	// MinRetries min retries
+	MinRetries = 1
+	// Timeout1 time out 1
+	Timeout1 = 60
+	// Timeout2 time out 2
+	Timeout2 = 60
+	Timeout  = 5
+)
+
+// a global variable a
+var a = 1
+var b = 2
+
+// c global variable c
+var c = 3
+
+type person struct {
+	email string
+	// age is the person's age
+	age int
+}
+
+// SayHello is a method
+// sayHello is a method 2
+func (p *person) SayHello() {
+	fmt.Println("Hello, my age is", p.age)
+}
+
+// GetEmail is a method
+// getEmail is a method 2
+func (p *person) GetEmail() {
+	fmt.Println("Hi, my email is", p.email)
+}
+
+type iSayer interface {
+	// Say is a method
+	Say()
+	// SayHello is a method
+	SayHello(name string)
+}
+
+type iSayer2 interface {
+	// Hi is a method
+	Hi()
+}
+
+type sayer interface {
+	Say()
+	Hi()
+}
+
+type (
+	fn1     func()
+	chan1   chan int
+	map1    map[string]int
+	slice1  []int
+	Speaker interface {
+		Say()
+		Hi()
+	}
+)
+
+var (
+	_ = func() {}
+	_ = chan1(nil)
+)
+
+var _ []int
+var _ = fn1(func() {})
+
+// Merge merges two slices
+func Merge(slice [][]byte) {
+	fmt.Println(bytes.Join(slice, []byte("\n")))
+}
+
+func GetByID(id int) {
+	// do something
+}
+
+// Hi is a method
+func (p *person) Hi() {
+	fmt.Println("Hi, my age is", p.age)
+}
+
+func init() {
+	fmt.Println("init")
+}
+
+func init() {
+	fmt.Printf("%s\n", "init2")
+}
