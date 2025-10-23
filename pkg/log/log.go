@@ -7,9 +7,9 @@ import (
 	"time"
 
 	krtlog "github.com/go-kratos/kratos/v2/log"
-	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 	gormlogger "gorm.io/gorm/logger"
 )
 
@@ -107,47 +107,19 @@ func NewLogger(opts *Options, options ...Option) *zapLogger {
 		encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 	}
 
-	var cores []zapcore.Core
-
-	// 创建编码器
-	var encoder zapcore.Encoder
-	if opts.Format == "console" {
-		encoder = zapcore.NewConsoleEncoder(encoderConfig)
-	} else {
-		encoder = zapcore.NewJSONEncoder(encoderConfig)
-	}
-
 	// 处理标准输出和文件输出路径
 	outputPaths := opts.OutputPaths
 	if len(outputPaths) == 0 {
 		outputPaths = []string{"stdout"}
 	}
 
-	// 添加输出路径
-	for _, path := range outputPaths {
-		var writer zapcore.WriteSyncer
-		switch path {
-		case "stdout":
-			writer = zapcore.AddSync(zapcore.Lock(os.Stdout))
-		case "stderr":
-			writer = zapcore.AddSync(zapcore.Lock(os.Stderr))
-		default:
-			// 处理文件路径输出
-			file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-			if err == nil {
-				writer = zapcore.AddSync(file)
-			} else {
-				// 如果无法打开文件，回退到标准输出
-				writer = zapcore.AddSync(zapcore.Lock(os.Stdout))
-			}
-		}
-		core := zapcore.NewCore(encoder, writer, zapLevel)
-		cores = append(cores, core)
-	}
+	// 创建 zap.Logger
+	var z *zap.Logger
+	var err error
 
-	// 如果启用了文件存储且配置了文件存储选项，则添加文件输出
+	// 检查是否需要文件轮转功能
 	if opts.EnableFileStorage && opts.FileConfig != nil {
-		// 创建 lumberjack logger 用于文件轮转
+		// 使用 lumberjack 进行文件轮转管理
 		lumberjackLogger := &lumberjack.Logger{
 			Filename:   opts.FileConfig.Filename,
 			MaxSize:    opts.FileConfig.MaxSize,
@@ -157,29 +129,73 @@ func NewLogger(opts *Options, options ...Option) *zapLogger {
 			LocalTime:  opts.FileConfig.LocalTime,
 		}
 
-		// 创建文件输出 core
-		fileWriter := zapcore.AddSync(lumberjackLogger)
-		fileCore := zapcore.NewCore(encoder, fileWriter, zapLevel)
-		cores = append(cores, fileCore)
-	}
+		// 创建编码器
+		var encoder zapcore.Encoder
+		if opts.Format == "console" {
+			encoder = zapcore.NewConsoleEncoder(encoderConfig)
+		} else {
+			encoder = zapcore.NewJSONEncoder(encoderConfig)
+		}
 
-	// 创建多输出 core
-	var core zapcore.Core
-	if len(cores) > 0 {
-		core = zapcore.NewTee(cores...)
+		// 创建多个输出目标
+		var writers []zapcore.WriteSyncer
+
+		// 添加标准输出/错误输出
+		for _, path := range outputPaths {
+			switch path {
+			case "stdout":
+				writers = append(writers, zapcore.AddSync(zapcore.Lock(os.Stdout)))
+			case "stderr":
+				writers = append(writers, zapcore.AddSync(zapcore.Lock(os.Stderr)))
+			default:
+				// 处理普通文件路径
+				file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				if err == nil {
+					writers = append(writers, zapcore.AddSync(file))
+				}
+			}
+		}
+
+		// 添加文件轮转输出
+		writers = append(writers, zapcore.AddSync(lumberjackLogger))
+
+		// 创建多输出writer
+		multiWriter := zapcore.NewMultiWriteSyncer(writers...)
+
+		// 创建core
+		core := zapcore.NewCore(encoder, multiWriter, zapLevel)
+
+		// 创建logger
+		z = zap.New(core, zap.AddStacktrace(zapcore.PanicLevel), zap.AddCallerSkip(2))
+		if opts.DisableCaller {
+			z = z.WithOptions(zap.WithCaller(false))
+		}
+		if opts.DisableStacktrace {
+			z = z.WithOptions(zap.AddStacktrace(zapcore.FatalLevel + 1))
+		}
 	} else {
-		// 如果没有任何有效的输出配置，默认输出到标准输出
-		writer := zapcore.AddSync(zapcore.Lock(os.Stdout))
-		core = zapcore.NewCore(encoder, writer, zapLevel)
-	}
+		// 使用标准zap配置
+		cfg := &zap.Config{
+			// 是否在日志中显示调用日志所在的文件和行号
+			DisableCaller: opts.DisableCaller,
+			// 是否禁止在 panic 及以上级别打印堆栈信息
+			DisableStacktrace: opts.DisableStacktrace,
+			// 指定日志级别
+			Level: zap.NewAtomicLevelAt(zapLevel),
+			// 指定日志显示格式，可选值：console, json
+			Encoding:      opts.Format,
+			EncoderConfig: encoderConfig,
+			// 指定日志输出位置
+			OutputPaths: outputPaths,
+			// 设置 zap 内部错误输出位置
+			ErrorOutputPaths: []string{"stderr"},
+		}
 
-	// 创建 zap.Logger
-	z := zap.New(core, zap.AddStacktrace(zapcore.PanicLevel), zap.AddCallerSkip(2))
-	if opts.DisableCaller {
-		z = z.WithOptions(zap.WithCaller(false))
-	}
-	if opts.DisableStacktrace {
-		z = z.WithOptions(zap.AddStacktrace(zapcore.FatalLevel + 1))
+		// 使用 cfg 创建 *zap.Logger 对象
+		z, err = cfg.Build(zap.AddStacktrace(zapcore.PanicLevel), zap.AddCallerSkip(2))
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	logger := &zapLogger{z: z, opts: opts, contextExtractors: make(map[string]func(context.Context) string)}
@@ -218,20 +234,20 @@ func Panicw(msg string, keyvals ...any)            { std.Panicw(msg, keyvals...)
 func Fatalf(format string, args ...any)            { std.Fatalf(format, args...) }
 func Fatalw(msg string, keyvals ...any)            { std.Fatalw(msg, keyvals...) }
 
-func (l *zapLogger) Debugf(format string, args ...any) { l.logf(zapcore.DebugLevel, format, args...) }
-func (l *zapLogger) Debugw(msg string, keyvals ...any) { l.logw(zapcore.DebugLevel, msg, keyvals...) }
-func (l *zapLogger) Infof(format string, args ...any)  { l.logf(zapcore.InfoLevel, format, args...) }
-func (l *zapLogger) Infow(msg string, keyvals ...any)  { l.logw(zapcore.InfoLevel, msg, keyvals...) }
-func (l *zapLogger) Warnf(format string, args ...any)  { l.logf(zapcore.WarnLevel, format, args...) }
-func (l *zapLogger) Warnw(msg string, keyvals ...any)  { l.logw(zapcore.WarnLevel, msg, keyvals...) }
-func (l *zapLogger) Errorf(format string, args ...any) { l.logf(zapcore.ErrorLevel, format, args...) }
+func (l *zapLogger) Debugf(format string, args ...any) { l.z.Sugar().Debugf(format, args...) }
+func (l *zapLogger) Debugw(msg string, keyvals ...any) { l.z.Sugar().Debugw(msg, keyvals...) }
+func (l *zapLogger) Infof(format string, args ...any)  { l.z.Sugar().Infof(format, args...) }
+func (l *zapLogger) Infow(msg string, keyvals ...any)  { l.z.Sugar().Infow(msg, keyvals...) }
+func (l *zapLogger) Warnf(format string, args ...any)  { l.z.Sugar().Warnf(format, args...) }
+func (l *zapLogger) Warnw(msg string, keyvals ...any)  { l.z.Sugar().Warnw(msg, keyvals...) }
+func (l *zapLogger) Errorf(format string, args ...any) { l.z.Sugar().Errorf(format, args...) }
 func (l *zapLogger) Errorw(err error, msg string, keyvals ...any) {
-	l.logw(zapcore.ErrorLevel, msg, append(keyvals, "error", err)...)
+	l.z.Sugar().Errorw(msg, append(keyvals, "error", err)...)
 }
-func (l *zapLogger) Panicf(format string, args ...any) { l.logf(zapcore.PanicLevel, format, args...) }
-func (l *zapLogger) Panicw(msg string, keyvals ...any) { l.logw(zapcore.PanicLevel, msg, keyvals...) }
-func (l *zapLogger) Fatalf(format string, args ...any) { l.logf(zapcore.FatalLevel, format, args...) }
-func (l *zapLogger) Fatalw(msg string, keyvals ...any) { l.logw(zapcore.FatalLevel, msg, keyvals...) }
+func (l *zapLogger) Panicf(format string, args ...any) { l.z.Sugar().Panicf(format, args...) }
+func (l *zapLogger) Panicw(msg string, keyvals ...any) { l.z.Sugar().Panicw(msg, keyvals...) }
+func (l *zapLogger) Fatalf(format string, args ...any) { l.z.Sugar().Fatalf(format, args...) }
+func (l *zapLogger) Fatalw(msg string, keyvals ...any) { l.z.Sugar().Fatalw(msg, keyvals...) }
 
 func AddCallerSkip(skip int) Logger {
 	return std.AddCallerSkip(skip)
@@ -269,40 +285,4 @@ func (l *zapLogger) W(ctx context.Context) Logger {
 func (l *zapLogger) clone() *zapLogger {
 	copied := *l
 	return &copied
-}
-
-// 通用日志方法封装 - 用于w系列方法
-func (l *zapLogger) logw(level zapcore.Level, msg string, keyvals ...any) {
-	switch level {
-	case zapcore.DebugLevel:
-		l.z.Sugar().Debugw(msg, keyvals...)
-	case zapcore.InfoLevel:
-		l.z.Sugar().Infow(msg, keyvals...)
-	case zapcore.WarnLevel:
-		l.z.Sugar().Warnw(msg, keyvals...)
-	case zapcore.ErrorLevel:
-		l.z.Sugar().Errorw(msg, keyvals...)
-	case zapcore.PanicLevel:
-		l.z.Sugar().Panicw(msg, keyvals...)
-	case zapcore.FatalLevel:
-		l.z.Sugar().Fatalw(msg, keyvals...)
-	}
-}
-
-// 通用日志方法封装 - 用于f系列方法
-func (l *zapLogger) logf(level zapcore.Level, format string, args ...any) {
-	switch level {
-	case zapcore.DebugLevel:
-		l.z.Sugar().Debugf(format, args...)
-	case zapcore.InfoLevel:
-		l.z.Sugar().Infof(format, args...)
-	case zapcore.WarnLevel:
-		l.z.Sugar().Warnf(format, args...)
-	case zapcore.ErrorLevel:
-		l.z.Sugar().Errorf(format, args...)
-	case zapcore.PanicLevel:
-		l.z.Sugar().Panicf(format, args...)
-	case zapcore.FatalLevel:
-		l.z.Sugar().Fatalf(format, args...)
-	}
 }
