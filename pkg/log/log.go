@@ -52,8 +52,13 @@ var _ Logger = (*zapLogger)(nil)
 
 var (
 	mu  sync.Mutex
-	std = NewLogger(NewOptions()) // 默认的 Logger 实例, 不需要显式调用 Init 初始化
+	std = NewLogger(NewOptions()) // 默认的 Logger 实例
 )
+
+// Default 返回全局 Logger.
+func Default() Logger {
+	return std
+}
 
 // WithContextExtractor 添加自定义的 context 提取逻辑
 func WithContextExtractor(contextExtractors ContextExtractors) Option {
@@ -149,7 +154,8 @@ func NewLogger(opts *Options, options ...Option) *zapLogger {
 				writers = append(writers, zapcore.AddSync(zapcore.Lock(os.Stderr)))
 			default:
 				// 处理普通文件路径
-				file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				var file *os.File
+				file, err = os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 				if err == nil {
 					writers = append(writers, zapcore.AddSync(file))
 				}
@@ -205,11 +211,6 @@ func NewLogger(opts *Options, options ...Option) *zapLogger {
 	}
 
 	return logger
-}
-
-// Default 返回全局 Logger.
-func Default() Logger {
-	return std
 }
 
 // Sync 刷新日志.

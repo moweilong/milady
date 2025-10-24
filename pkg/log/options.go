@@ -53,18 +53,6 @@ func NewOptions() *Options {
 	}
 }
 
-// NewFileOptions 返回默认的文件存储配置
-func NewFileOptions() *FileOptions {
-	return &FileOptions{
-		Filename:   "out.log",
-		MaxSize:    10,
-		MaxBackups: 100,
-		MaxAge:     30,
-		Compress:   false,
-		LocalTime:  true,
-	}
-}
-
 // Validate verifies flags passed to LogsOptions.
 func (o *Options) Validate() []error {
 	errs := []error{}
@@ -93,61 +81,4 @@ func (o *Options) AddFlags(fs *pflag.FlagSet) {
 		fs.BoolVar(&o.FileConfig.LocalTime, "log.file-config.local-time", o.FileConfig.LocalTime, "Whether to use local time for log file rotation.")
 	}
 
-}
-
-// WithFileName 设置日志文件名
-func WithFileName(filename string) func(*FileOptions) {
-	return func(f *FileOptions) {
-		if filename != "" {
-			f.Filename = filename
-		}
-	}
-}
-
-// WithFileMaxSize 设置日志文件最大大小（MB）
-func WithFileMaxSize(maxSize int) func(*FileOptions) {
-	return func(f *FileOptions) {
-		if maxSize > 0 {
-			f.MaxSize = maxSize
-		}
-	}
-}
-
-// WithFileMaxBackups 设置保留的最大旧文件数量
-func WithFileMaxBackups(maxBackups int) func(*FileOptions) {
-	return func(f *FileOptions) {
-		if maxBackups > 0 {
-			f.MaxBackups = maxBackups
-		}
-	}
-}
-
-// WithFileMaxAge 设置保留的最大天数
-func WithFileMaxAge(maxAge int) func(*FileOptions) {
-	return func(f *FileOptions) {
-		if maxAge > 0 {
-			f.MaxAge = maxAge
-		}
-	}
-}
-
-// WithFileCompress 设置是否压缩旧文件
-func WithFileCompress(compress bool) func(*FileOptions) {
-	return func(f *FileOptions) {
-		f.Compress = compress
-	}
-}
-
-// WithFileLocalTime 设置是否使用本地时间
-func WithFileLocalTime(localTime bool) func(*FileOptions) {
-	return func(f *FileOptions) {
-		f.LocalTime = localTime
-	}
-}
-
-// WithEnableFileStorage 设置是否启用文件存储
-func WithEnableFileStorage(enable bool) func(*Options) {
-	return func(o *Options) {
-		o.EnableFileStorage = enable
-	}
 }

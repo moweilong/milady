@@ -3,6 +3,7 @@ package log_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -10,6 +11,12 @@ import (
 
 	"github.com/moweilong/milady/pkg/log"
 )
+
+func TestDefaultLogger(t *testing.T) {
+	log.Infow("测试日志", "key", "value")
+	err := fmt.Errorf("这是测试错误信息")
+	log.Errorf("测试错误日志: %v", err)
+}
 
 // TestFileStorage 测试文件存储功能
 func TestFileStorage(t *testing.T) {
