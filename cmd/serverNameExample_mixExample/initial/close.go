@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/moweilong/milady/pkg/app"
 	"github.com/moweilong/milady/pkg/logger"
+	app "github.com/moweilong/milady/pkg/mapp"
 	"github.com/moweilong/milady/pkg/tracer"
 
 	"github.com/moweilong/milady/internal/config"

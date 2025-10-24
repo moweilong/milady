@@ -21,6 +21,8 @@ dist/
 *.ipr
 *.iws
 
+_output/
+
 cmd/serverNameExample/serverNameExample
 # delete the templates code start
 cmd/protoc-gen-go-gin/protoc-gen-go-gin

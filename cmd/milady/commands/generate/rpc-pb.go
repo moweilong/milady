@@ -105,7 +105,7 @@ func (g *rpcPbGenerator) generateCode() error {
 	}
 
 	subTplName := codeNameGRPCPb
-	r := Replacers[TplNameSponge]
+	r := Replacers[TplNameMilady]
 	if r == nil {
 		return errors.New("replacer is nil")
 	}

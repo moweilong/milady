@@ -6,8 +6,7 @@ import (
 )
 
 const (
-	latestVersion    = "latest"
-	separatedVersion = "v1.11.2" // deprecated
+	latestVersion = "latest"
 )
 
 // InitCommand initial milady

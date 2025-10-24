@@ -151,7 +151,7 @@ type serviceAndHandlerGenerator struct {
 // nolint
 func (g *serviceAndHandlerGenerator) generateCode() (string, error) {
 	subTplName := codeNameServiceHTTP
-	r, _ := replacer.New(SpongeDir)
+	r, _ := replacer.New(MiladyDir)
 	if r == nil {
 		return "", errors.New("replacer is nil")
 	}

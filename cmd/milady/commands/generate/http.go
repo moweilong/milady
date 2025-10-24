@@ -186,7 +186,7 @@ type httpGenerator struct {
 
 func (g *httpGenerator) generateCode() (string, error) {
 	subTplName := codeNameHTTP
-	r, _ := replacer.New(SpongeDir)
+	r, _ := replacer.New(MiladyDir)
 	if r == nil {
 		return "", errors.New("replacer is nil")
 	}

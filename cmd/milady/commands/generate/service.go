@@ -149,7 +149,7 @@ type serviceGenerator struct {
 // nolint
 func (g *serviceGenerator) generateCode() (string, error) {
 	subTplName := codeNameService
-	r, _ := replacer.New(SpongeDir)
+	r, _ := replacer.New(MiladyDir)
 	if r == nil {
 		return "", errors.New("replacer is nil")
 	}

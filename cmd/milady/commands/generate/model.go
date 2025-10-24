@@ -31,13 +31,13 @@ func ModelCommand(parentName string) *cobra.Command {
 		Short: "Generate model code based on sql",
 		Long:  "Generate model code based on sql.",
 		Example: color.HiBlackString(fmt.Sprintf(`  # Generate model code.
-  sponge %s model --db-driver=mysql --db-dsn=root:123456@(192.168.3.37:3306)/test --db-table=user
+  milady %s model --db-driver=mysql --db-dsn=root:123456@(127.0.0.1:3306)/test --db-table=user
 
   # Generate model code with multiple table names.
-  sponge %s model --db-driver=mysql --db-dsn=root:123456@(192.168.3.37:3306)/test --db-table=t1,t2
+  milady %s model --db-driver=mysql --db-dsn=root:123456@(127.0.0.1:3306)/test --db-table=t1,t2
 
   # Generate model code and specify the server directory, Note: code generation will be canceled when the latest generated file already exists.
-  sponge %s model --db-driver=mysql --db-dsn=root:123456@(192.168.3.37:3306)/test --db-table=user --out=./yourServerDir`,
+  milady %s model --db-driver=mysql --db-dsn=root:123456@(127.0.0.1:3306)/test --db-table=user --out=./yourServerDir`,
 			parentName, parentName, parentName)),
 		SilenceErrors: true,
 		SilenceUsage:  true,
@@ -69,7 +69,7 @@ func ModelCommand(parentName string) *cobra.Command {
 
 			fmt.Printf(`
 using help:
-  move the folder "internal" to your project code folder.
+  move the folder "internal/apiserver" to your project code folder.
 
 `)
 			fmt.Printf("generate \"model\" code successfully, out = %s\n", outPath)
@@ -94,21 +94,32 @@ type modelGenerator struct {
 	outPath string
 }
 
+// generateCode 生成模型代码
+//
+// 返回生成的代码目录路径和可能的错误
 func (g *modelGenerator) generateCode() (string, error) {
+	// 标识要使用的子模板类型
 	subTplName := codeNameModel
-	r := Replacers[TplNameSponge]
+	// 获取代码替换器实例
+	r := Replacers[TplNameMilady] // 在 milady 运行之初就要求执行 init 命令, 确保 Replacers 已初始化
 	if r == nil {
 		return "", errors.New("replacer is nil")
 	}
 
 	// specify the subdirectory and files
 	subDirs := []string{}
-	subFiles := []string{"internal/model/userExample.go"}
+	// 指定要处理的模板文件, 这是一个模型文件的示例模板
+	subFiles := []string{"internal/apiserver/model/userExample.go"}
 
+	// 配置替换器 ：设置子目录和文件
 	r.SetSubDirsAndFiles(subDirs, subFiles...)
+	// 添加模型代码替换规则
 	fields := g.addFields(r)
+	// 设置替换规则
 	r.SetReplacementFields(fields)
+	// 设置输出目录
 	_ = r.SetOutputDir(g.outPath, subTplName)
+	// 保存生成的文件
 	if err := r.SaveFiles(); err != nil {
 		return "", err
 	}
@@ -116,16 +127,24 @@ func (g *modelGenerator) generateCode() (string, error) {
 	return r.GetOutputDir(), nil
 }
 
+// addFields 添加模型代码替换规则
+//
+// 接收一个replacer实例作为参数
+//
+// 返回一个replacer.Field切片，用于定义内容替换规则
 func (g *modelGenerator) addFields(r replacer.Replacer) []replacer.Field {
 	var fields []replacer.Field
 
+	// 调用 deleteFieldsMark 函数删除模板文件中特定标记之间的内容
 	fields = append(fields, deleteFieldsMark(r, modelFile, startMark, endMark)...)
 	fields = append(fields, []replacer.Field{
 		{ // replace the contents of the model/userExample.go file
+			// 将模板中的 modelFileMark 标记替换为实际生成的模型代码
 			Old: modelFileMark,
 			New: g.codes[parser.CodeTypeModel],
 		},
 		{
+			// 将模板中的 "UserExample" 字符串（大小写敏感）替换为实际的表名
 			Old:             "UserExample",
 			New:             g.codes[parser.TableName],
 			IsCaseSensitive: true,

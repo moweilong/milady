@@ -104,7 +104,7 @@ func (g *httpPbGenerator) generateCode() (string, error) {
 	}
 
 	subTplName := codeNameHTTPPb
-	r := Replacers[TplNameSponge]
+	r := Replacers[TplNameMilady]
 	if r == nil {
 		return "", errors.New("replacer is nil")
 	}

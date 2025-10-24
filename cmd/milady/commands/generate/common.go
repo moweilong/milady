@@ -27,10 +27,10 @@ import (
 )
 
 const (
-	defaultGoModVersion = "go 1.23.0"
+	defaultGoModVersion = "go 1.25.1"
 
-	// TplNameSponge name of the template
-	TplNameSponge = "sponge"
+	// TplNameMilady name of the template
+	TplNameMilady = "milady"
 
 	// DBDriverMysql mysql driver
 	DBDriverMysql = "mysql"
@@ -244,15 +244,24 @@ func idTypeToStr(handlerCodes string) string {
 	return handlerCodes
 }
 
+// deleteFieldsMark 删除模板文件中特定标记之间内容
+//
+// 接收一个replacer实例、文件名、开始标记和结束标记作为参数
+//
+// 返回一个replacer.Field切片，用于定义内容替换规则
 func deleteFieldsMark(r replacer.Replacer, filename string, startMark []byte, endMark []byte) []replacer.Field {
+	// 创建一个空的Field切片用于存储替换规则
 	var fields []replacer.Field
 
+	// 使用replacer实例的ReadFile方法读取指定文件内容
 	data, err := r.ReadFile(filename)
 	if err != nil {
 		//fmt.Printf("readFile error: %v\n", err)
 		return fields
 	}
+	// 调用 gofile.FindSubBytes 函数查找开始标记和结束标记之间的所有内容
 	if subBytes := gofile.FindSubBytes(data, startMark, endMark); len(subBytes) > 0 {
+		// 如果找到内容，创建一个replacer.Field对象，将Old设置为找到的内容，New设置为空字符串
 		fields = append(fields,
 			replacer.Field{ // clear marked template code
 				Old: string(subBytes),

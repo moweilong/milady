@@ -133,7 +133,7 @@ func (g *httpAndGRPCPbGenerator) generateCode() (string, error) {
 	if g.isAddDBInitCode {
 		subTplName = codeNameGRPCHTTP
 	}
-	r := Replacers[TplNameSponge]
+	r := Replacers[TplNameMilady]
 	if r == nil {
 		return "", errors.New("replacer is nil")
 	}

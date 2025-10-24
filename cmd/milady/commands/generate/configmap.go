@@ -70,7 +70,7 @@ type copyConfigGenerator struct {
 
 func (g *copyConfigGenerator) generateCode() (string, error) {
 	subTplName := "configmap"
-	r := Replacers[TplNameSponge]
+	r := Replacers[TplNameMilady]
 	if r == nil {
 		return "", errors.New("replacer is nil")
 	}

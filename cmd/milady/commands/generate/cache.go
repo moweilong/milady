@@ -129,7 +129,7 @@ type stringCacheGenerator struct {
 
 func (g *stringCacheGenerator) generateCode() (string, error) {
 	subTplName := codeNameCache
-	r := Replacers[TplNameSponge]
+	r := Replacers[TplNameMilady]
 	if r == nil {
 		return "", errors.New("replacer is nil")
 	}

@@ -91,10 +91,10 @@ func (l *zapLogger) Trace(ctx context.Context, begin time.Time, fc func() (sql s
 }
 
 func fileWithLineNum() string {
+
 	for i := 4; i < 15; i++ {
 		_, file, line, ok := runtime.Caller(i)
 
-		// if ok && (!strings.HasPrefix(file, gormSourceDir) || strings.HasSuffix(file, "_test.go")) {
 		if ok && !strings.HasSuffix(file, "_test.go") {
 			dir, f := filepath.Split(file)
 

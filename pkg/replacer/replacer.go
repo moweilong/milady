@@ -17,7 +17,7 @@ import (
 
 var _ Replacer = (*replacerInfo)(nil)
 
-// Replacer interface
+// Replacer interface. 一个文本替换器接口，用于替换文件中的文本。
 type Replacer interface {
 	SetReplacementFields(fields []Field)
 	SetSubDirsAndFiles(subDirs []string, subFiles ...string)

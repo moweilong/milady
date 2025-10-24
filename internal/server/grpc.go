@@ -12,12 +12,12 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/moweilong/milady/pkg/app"
 	"github.com/moweilong/milady/pkg/errcode"
 	"github.com/moweilong/milady/pkg/grpc/gtls"
 	"github.com/moweilong/milady/pkg/grpc/interceptor"
 	"github.com/moweilong/milady/pkg/grpc/metrics"
 	"github.com/moweilong/milady/pkg/logger"
+	app "github.com/moweilong/milady/pkg/mapp"
 	"github.com/moweilong/milady/pkg/prof"
 	"github.com/moweilong/milady/pkg/servicerd/registry"
 

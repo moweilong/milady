@@ -2,9 +2,8 @@
 package main
 
 import (
-	"github.com/moweilong/milady/pkg/app"
-
 	"github.com/moweilong/milady/cmd/serverNameExample_mixExample/initial"
+	app "github.com/moweilong/milady/pkg/mapp"
 )
 
 // @title serverNameExample api docs

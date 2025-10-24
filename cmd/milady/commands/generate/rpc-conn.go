@@ -107,7 +107,7 @@ type grpcConnectionGenerator struct {
 
 func (g *grpcConnectionGenerator) generateCode() (string, error) {
 	subTplName := codeNameGRPCConn
-	r := Replacers[TplNameSponge]
+	r := Replacers[TplNameMilady]
 	if r == nil {
 		return "", errors.New("replacer is nil")
 	}

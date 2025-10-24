@@ -151,7 +151,7 @@ type daoGenerator struct {
 
 func (g *daoGenerator) generateCode() (string, error) {
 	subTplName := codeNameDao
-	r, _ := replacer.New(SpongeDir)
+	r, _ := replacer.New(MiladyDir)
 	if r == nil {
 		return "", errors.New("r is nil")
 	}

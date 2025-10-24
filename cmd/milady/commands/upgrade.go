@@ -88,49 +88,19 @@ func runUpgrade(targetVersion string) (string, error) {
 
 // runUpgradeCommand upgrade milady binary
 func runUpgradeCommand(targetVersion string) error {
-	ctx, _ := context.WithTimeout(context.Background(), time.Minute*3) //nolint
-	spongeVersion := "github.com/moweilong/milady/cmd/milady@" + targetVersion
-	if compareVersion(separatedVersion, targetVersion) {
-		spongeVersion = strings.ReplaceAll(spongeVersion, "go-dev-frame", "zhufuyi")
-	}
-	result := gobash.Run(ctx, "go", "install", spongeVersion)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3)
+	defer cancel()
+	// github.com/moweilong/milady/cmd/milady@latest
+	miladyVersion := "github.com/moweilong/milady/cmd/milady@" + targetVersion
+	result := gobash.Run(ctx, "go", "install", miladyVersion)
 	for v := range result.StdOut {
+		fmt.Println(v)
 		_ = v
 	}
 	if result.Err != nil {
 		return result.Err
 	}
 	return nil
-}
-
-// compareVersion compare two version strings
-// v1 >= v2 return true
-// v1 < v2 return false
-func compareVersion(v1, v2 string) bool {
-	if v1 == "latest" {
-		return true
-	}
-	if v2 == "latest" {
-		return false
-	}
-
-	v1 = strings.ReplaceAll(v1, "v", "")
-	v2 = strings.ReplaceAll(v2, "v", "")
-	v1s := strings.Split(v1, ".")
-	v2s := strings.Split(v2, ".")
-	if len(v1s) < 3 || len(v2s) < 3 {
-		return false
-	}
-
-	if v1s[0] != v2s[0] {
-		return utils.StrToInt(v1s[0]) > utils.StrToInt(v2s[0])
-	}
-
-	if v1s[1] != v2s[1] {
-		return utils.StrToInt(v1s[1]) > utils.StrToInt(v2s[1])
-	}
-
-	return utils.StrToInt(v1s[2]) > utils.StrToInt(v2s[2])
 }
 
 // copyToTempDir copy the template files to a temporary directory
@@ -154,12 +124,7 @@ func copyToTempDir(targetVersion string) (string, error) {
 	miladyDirName := ""
 	if targetVersion == latestVersion {
 		// find the new version of the milady code directory
-		arg := fmt.Sprintf("%s/pkg/mod/github.com/moweilong/milady", gopath)
-		// deprecated separatedVersion
-		// separatedVersion 大于 targetVersion, 需要替换为 bugsmo
-		if compareVersion(separatedVersion, targetVersion) {
-			arg = strings.ReplaceAll(arg, "moweilong", "bugsmo")
-		}
+		arg := fmt.Sprintf("%s/pkg/mod/github.com/moweilong", gopath)
 		result, err = gobash.Exec("ls", adaptPathDelimiter(arg))
 		if err != nil {
 			return "", fmt.Errorf("execute command failed, %v", err)
@@ -174,9 +139,6 @@ func copyToTempDir(targetVersion string) (string, error) {
 	}
 
 	srcDir := adaptPathDelimiter(fmt.Sprintf("%s/pkg/mod/github.com/moweilong/%s", gopath, miladyDirName))
-	if compareVersion(separatedVersion, targetVersion) {
-		srcDir = strings.ReplaceAll(srcDir, "moweilong", "bugsmo")
-	}
 	destDir := adaptPathDelimiter(GetMiladyDir() + "/")
 	targetDir := adaptPathDelimiter(destDir + ".milady")
 
@@ -235,8 +197,8 @@ func getLatestVersion(s string) string {
 	var dirNames = make(map[int]string)
 	var nums []int
 
-	dirs := strings.Split(s, "\n")
-	for _, dirName := range dirs {
+	dirs := strings.SplitSeq(s, "\n")
+	for dirName := range dirs {
 		if strings.Contains(dirName, "milady@") {
 			tmp := strings.ReplaceAll(dirName, "milady@", "")
 			ss := strings.Split(tmp, ".")
@@ -262,9 +224,9 @@ func getLatestVersion(s string) string {
 func updateMiladyInternalPlugin(targetVersion string) error {
 	ctx, _ := context.WithTimeout(context.Background(), 3*time.Minute) //nolint
 	genGinVersion := "github.com/moweilong/milady/cmd/protoc-gen-go-gin@" + targetVersion
-	if compareVersion(separatedVersion, targetVersion) {
-		genGinVersion = strings.ReplaceAll(genGinVersion, "moweilong", "bugsmo")
-	}
+	// if compareVersion(separatedVersion, targetVersion) {
+	// 	genGinVersion = strings.ReplaceAll(genGinVersion, "moweilong", "bugsmo")
+	// }
 	result := gobash.Run(ctx, "go", "install", genGinVersion)
 	for v := range result.StdOut {
 		_ = v
@@ -275,9 +237,9 @@ func updateMiladyInternalPlugin(targetVersion string) error {
 
 	ctx, _ = context.WithTimeout(context.Background(), 3*time.Minute) //nolint
 	genRPCVersion := "github.com/moweilong/milady/cmd/protoc-gen-go-rpc-tmpl@" + targetVersion
-	if compareVersion(separatedVersion, targetVersion) {
-		genRPCVersion = strings.ReplaceAll(genRPCVersion, "moweilong", "bugsmo")
-	}
+	// if compareVersion(separatedVersion, targetVersion) {
+	// 	genRPCVersion = strings.ReplaceAll(genRPCVersion, "moweilong", "bugsmo")
+	// }
 	result = gobash.Run(ctx, "go", "install", genRPCVersion)
 	for v := range result.StdOut {
 		_ = v
@@ -290,9 +252,9 @@ func updateMiladyInternalPlugin(targetVersion string) error {
 	if !strings.HasPrefix(targetVersion, "v1") {
 		ctx, _ = context.WithTimeout(context.Background(), 3*time.Minute) //nolint
 		genJSONVersion := "github.com/moweilong/milady/cmd/protoc-gen-json-field@" + targetVersion
-		if compareVersion(separatedVersion, targetVersion) {
-			genJSONVersion = strings.ReplaceAll(genJSONVersion, "moweilong", "bugsmo")
-		}
+		// if compareVersion(separatedVersion, targetVersion) {
+		// 	genJSONVersion = strings.ReplaceAll(genJSONVersion, "moweilong", "bugsmo")
+		// }
 		result = gobash.Run(ctx, "go", "install", genJSONVersion)
 		for v := range result.StdOut {
 			_ = v

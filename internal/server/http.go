@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/moweilong/milady/pkg/app"
+	app "github.com/moweilong/milady/pkg/mapp"
 	"github.com/moweilong/milady/pkg/servicerd/registry"
 
 	"github.com/moweilong/milady/internal/routers"

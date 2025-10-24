@@ -64,7 +64,7 @@ func SetSelectFiles(dbDriver string, selectFiles map[string][]string) error {
 ```go
 func (g *dbInitGenerator) generateCode() (string, error) {
     subTplName := "init_" + g.dbDriver
-    r := generate.Replacers[generate.TplNameSponge]
+    r := generate.Replacers[generate.TplNameMilady]
     if r == nil {
         return "", errors.New("replacer is nil")
     }

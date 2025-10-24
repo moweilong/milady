@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/moweilong/milady/pkg/app"
 	"github.com/moweilong/milady/pkg/logger"
+	app "github.com/moweilong/milady/pkg/mapp"
 	"github.com/moweilong/milady/pkg/servicerd/registry"
 	"github.com/moweilong/milady/pkg/servicerd/registry/consul"
 	"github.com/moweilong/milady/pkg/servicerd/registry/etcd"

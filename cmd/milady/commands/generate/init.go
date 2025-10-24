@@ -3,10 +3,8 @@ package generate
 import (
 	"embed"
 	"fmt"
-	"math/rand"
 	"os"
 	"strings"
-	"time"
 
 	"github.com/moweilong/milady/pkg/gofile"
 	"github.com/moweilong/milady/pkg/replacer"
@@ -14,15 +12,11 @@ import (
 
 const warnSymbol = "⚠ "
 
-func init() {
-	rand.Seed(time.Now().UnixNano()) //nolint
-}
-
 // Replacers replacer name
 var Replacers = map[string]replacer.Replacer{}
 
-// SpongeDir sponge directory
-var SpongeDir = getHomeDir() + gofile.GetPathDelimiter() + ".sponge"
+// MiladyDir milady directory
+var MiladyDir = getHomeDir() + gofile.GetPathDelimiter() + ".milady"
 
 // Template information
 type Template struct {
@@ -33,19 +27,21 @@ type Template struct {
 
 // Init initializing the template
 func Init() error {
-	// determine if the template file exists, if not, prompt to initialize first
-	if !gofile.IsExists(SpongeDir) {
+	// determine if the template directory exists, if not, prompt to initialize first
+	if !gofile.IsExists(MiladyDir) {
 		if isShowCommand() {
 			return nil
 		}
-		return fmt.Errorf("%s not yet initialized, run the command \"sponge init\"", warnSymbol)
+		return fmt.Errorf("%s not yet initialized, run the command \"milady init\"", warnSymbol)
 	}
 
 	var err error
-	if _, ok := Replacers[TplNameSponge]; ok {
-		panic(fmt.Sprintf("template name \"%s\" already exists", TplNameSponge))
+	// determine if the template name already exists, if so, panic
+	if _, ok := Replacers[TplNameMilady]; ok {
+		panic(fmt.Sprintf("template name \"%s\" already exists", TplNameMilady))
 	}
-	Replacers[TplNameSponge], err = replacer.New(SpongeDir)
+	// initialize the template
+	Replacers[TplNameMilady], err = replacer.New(MiladyDir)
 	if err != nil {
 		return err
 	}
@@ -68,12 +64,12 @@ func InitFS(name string, filepath string, fs embed.FS) {
 func isShowCommand() bool {
 	l := len(os.Args)
 
-	// sponge
+	// milady
 	if l == 1 {
 		return true
 	}
 
-	// sponge init or sponge -h
+	// milady init or milady -h
 	if l == 2 {
 		if os.Args[1] == "init" || os.Args[1] == "-h" {
 			return true

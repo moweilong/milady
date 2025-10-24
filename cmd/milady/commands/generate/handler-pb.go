@@ -148,7 +148,7 @@ type handlerPbGenerator struct {
 
 func (g *handlerPbGenerator) generateCode() (string, error) {
 	subTplName := codeNameHandlerPb
-	r, _ := replacer.New(SpongeDir)
+	r, _ := replacer.New(MiladyDir)
 	if r == nil {
 		return "", errors.New("replacer is nil")
 	}

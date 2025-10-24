@@ -186,7 +186,7 @@ type rpcGenerator struct {
 
 func (g *rpcGenerator) generateCode() (string, error) {
 	subTplName := codeNameGRPC
-	r, _ := replacer.New(SpongeDir)
+	r, _ := replacer.New(MiladyDir)
 	if r == nil {
 		return "", errors.New("replacer is nil")
 	}
