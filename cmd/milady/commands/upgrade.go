@@ -72,9 +72,9 @@ func runUpgrade(targetVersion string) (string, error) {
 	}
 	p.StopPrint(finishTip)
 
-	runningTip = "upgrading the built-in plugins of sponge "
-	finishTip = "upgrade the built-in plugins of sponge done " + installedSymbol
-	failedTip = "upgrade the built-in plugins of sponge failed " + lackSymbol
+	runningTip = "upgrading the built-in plugins of milady "
+	finishTip = "upgrade the built-in plugins of milady done " + installedSymbol
+	failedTip = "upgrade the built-in plugins of milady failed " + lackSymbol
 	p = utils.NewWaitPrinter(time.Millisecond * 500)
 	p.LoopPrint(runningTip)
 	err = updateMiladyInternalPlugin(ver)
@@ -94,7 +94,7 @@ func runUpgradeCommand(targetVersion string) error {
 	miladyVersion := "github.com/moweilong/milady/cmd/milady@" + targetVersion
 	result := gobash.Run(ctx, "go", "install", miladyVersion)
 	for v := range result.StdOut {
-		fmt.Println(v)
+		// fmt.Println(v)
 		_ = v
 	}
 	if result.Err != nil {
@@ -173,7 +173,8 @@ func copyToTempDir(targetVersion string) (string, error) {
 
 // executeCommand execute command
 func executeCommand(name string, args ...string) error {
-	ctx, _ := context.WithTimeout(context.Background(), time.Second*30) //nolint
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
 	result := gobash.Run(ctx, name, args...)
 	for v := range result.StdOut {
 		_ = v
@@ -222,11 +223,9 @@ func getLatestVersion(s string) string {
 }
 
 func updateMiladyInternalPlugin(targetVersion string) error {
-	ctx, _ := context.WithTimeout(context.Background(), 3*time.Minute) //nolint
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
 	genGinVersion := "github.com/moweilong/milady/cmd/protoc-gen-go-gin@" + targetVersion
-	// if compareVersion(separatedVersion, targetVersion) {
-	// 	genGinVersion = strings.ReplaceAll(genGinVersion, "moweilong", "bugsmo")
-	// }
 	result := gobash.Run(ctx, "go", "install", genGinVersion)
 	for v := range result.StdOut {
 		_ = v
@@ -235,11 +234,9 @@ func updateMiladyInternalPlugin(targetVersion string) error {
 		return result.Err
 	}
 
-	ctx, _ = context.WithTimeout(context.Background(), 3*time.Minute) //nolint
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
 	genRPCVersion := "github.com/moweilong/milady/cmd/protoc-gen-go-rpc-tmpl@" + targetVersion
-	// if compareVersion(separatedVersion, targetVersion) {
-	// 	genRPCVersion = strings.ReplaceAll(genRPCVersion, "moweilong", "bugsmo")
-	// }
 	result = gobash.Run(ctx, "go", "install", genRPCVersion)
 	for v := range result.StdOut {
 		_ = v
@@ -248,20 +245,15 @@ func updateMiladyInternalPlugin(targetVersion string) error {
 		return result.Err
 	}
 
-	// v1.x.x version does not support protoc-gen-json-field
-	if !strings.HasPrefix(targetVersion, "v1") {
-		ctx, _ = context.WithTimeout(context.Background(), 3*time.Minute) //nolint
-		genJSONVersion := "github.com/moweilong/milady/cmd/protoc-gen-json-field@" + targetVersion
-		// if compareVersion(separatedVersion, targetVersion) {
-		// 	genJSONVersion = strings.ReplaceAll(genJSONVersion, "moweilong", "bugsmo")
-		// }
-		result = gobash.Run(ctx, "go", "install", genJSONVersion)
-		for v := range result.StdOut {
-			_ = v
-		}
-		if result.Err != nil {
-			return result.Err
-		}
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	genJSONVersion := "github.com/moweilong/milady/cmd/protoc-gen-json-field@" + targetVersion
+	result = gobash.Run(ctx, "go", "install", genJSONVersion)
+	for v := range result.StdOut {
+		_ = v
+	}
+	if result.Err != nil {
+		return result.Err
 	}
 
 	return nil
