@@ -6,6 +6,7 @@ import (
 	"github.com/huandu/xstrings"
 )
 
+// peculiarNouns 是一个特殊名词的映射表，用于将数据库中的特殊名词转换为 Go 语言中的特殊名词。
 var peculiarNouns = map[string]string{
 	"ID":    "Id",
 	"UID":   "Uid",
@@ -42,7 +43,13 @@ var peculiarNouns = map[string]string{
 	"XSS":   "Xss",
 }
 
+// toCamel is to convert string to camel case.
+//
+// if the string is in peculiarNouns, return the upper case.
+// otherwise, iterate the peculiarNouns, if length of the string is greater than the length of the peculiar noun,
+// compare the suffix, if found, replace it with the upper case.
 func toCamel(s string) string {
+	// ToCamelCase 是将由空格、下划线和连字符分隔的单词转换为驼峰式大小写。
 	str := xstrings.ToCamelCase(s)
 
 	name := strings.ToUpper(str)
@@ -50,6 +57,10 @@ func toCamel(s string) string {
 		return name
 	}
 
+	// 示例：
+	// - "user_xml" -> "UserXml" -> (处理后缀) -> "UserXML"
+	// - "xsrf_token" -> "XsrfToken" -> (无需处理) -> "XsrfToken"
+	// - "api_web" -> "ApiWeb" -> (无需处理) -> "ApiWeb"
 	l := len(str)
 	for k, v := range peculiarNouns {
 		nl := len(v)
@@ -68,6 +79,11 @@ func toCamel(s string) string {
 	return str
 }
 
+// firstLetterToLower is function to convert first letter to lower case.
+//
+// if the string is empty, return empty string.
+// if the first letter is not letter, return the string as is.
+// otherwise, convert the first letter to lower case.
 func firstLetterToLower(str string) string {
 	if len(str) == 0 {
 		return str
@@ -80,6 +96,10 @@ func firstLetterToLower(str string) string {
 	return str
 }
 
+// customToCamel is custom camel case function.
+//
+// if the string is in peculiarNouns, convert it to lower case.
+// otherwise, convert the first letter to lower case.
 func customToCamel(str string) string {
 	str = toCamel(str)
 
@@ -92,10 +112,15 @@ func customToCamel(str string) string {
 	return str
 }
 
+// customToSnake is custom snake case function.
+//
+// if the string is in peculiarNouns, convert it to lower case.
+// otherwise, iterate the peculiarNouns, if length of the string is greater than the length of the peculiar noun,
+// compare the suffix, if found, replace it with the lower case.
 func customToSnake(str string) string {
 	str = toCamel(str)
 	l := len(str)
-	for k, _ := range peculiarNouns {
+	for k := range peculiarNouns {
 		if str == k {
 			str = strings.ToLower(str)
 			break

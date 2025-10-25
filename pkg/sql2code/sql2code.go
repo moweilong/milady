@@ -87,12 +87,14 @@ func (a *Args) checkValid() error {
 // 对于不同的数据库驱动，使用相应的方法获取表结构信息。
 //
 // 参数:
-//   args - 代码生成参数配置
+//
+//	args - 代码生成参数配置
 //
 // 返回值:
-//   string - 获取到的SQL语句
-//   map[string]string - 字段类型映射，如果有特殊字段类型需要处理
-//   error - 获取过程中的错误，如果成功则为nil
+//
+//	string - 获取到的SQL语句
+//	map[string]string - 字段类型映射，如果有特殊字段类型需要处理
+//	error - 获取过程中的错误，如果成功则为nil
 func getSQL(args *Args) (string, map[string]string, error) {
 	// return the sql if it is not empty
 	if args.SQL != "" {
@@ -242,11 +244,13 @@ func GenerateOne(args *Args) (string, error) {
 // 4. 调用解析器解析SQL并生成代码
 //
 // 参数:
-//   args - 代码生成参数配置，包含数据库连接信息、表名、包名等配置项
+//
+//	args - 代码生成参数配置，包含数据库连接信息、表名、包名等配置项
 //
 // 返回值:
-//   map[string]string - 生成的各类代码映射，键为代码类型，值为代码内容
-//   error - 代码生成过程中的错误，如果成功则为nil
+//
+//	map[string]string - 生成的各类代码映射，键为代码类型，值为代码内容
+//	error - 代码生成过程中的错误，如果成功则为nil
 func Generate(args *Args) (map[string]string, error) {
 	if err := args.checkValid(); err != nil {
 		return nil, err
@@ -264,6 +268,6 @@ func Generate(args *Args) (map[string]string, error) {
 	}
 
 	opt := setOptions(args)
-
+	fmt.Printf("generate code with options: %v\n", opt)
 	return parser.ParseSQL(sql, opt...)
 }

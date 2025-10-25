@@ -49,9 +49,9 @@ func UpgradeCommand() *cobra.Command {
 
 // runUpgrade 升级 milady 相关文件, 包括 milady 二进制文件、模板代码、内置插件
 func runUpgrade(targetVersion string) (string, error) {
-	runningTip := "Upgrading milady binary"
-	finishTip := "Upgrade milady binary done" + installedSymbol
-	failedTip := "Upgrade milady binary failed" + lackSymbol
+	runningTip := "Upgrading milady binary "
+	finishTip := "Upgrade milady binary done " + installedSymbol
+	failedTip := "Upgrade milady binary failed " + lackSymbol
 	p := utils.NewWaitPrinter(time.Millisecond * 100)
 	p.LoopPrint(runningTip)
 	err := runUpgradeCommand(targetVersion)

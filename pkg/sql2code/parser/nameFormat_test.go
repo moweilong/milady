@@ -6,7 +6,7 @@ import (
 
 func TestNameFormat(t *testing.T) {
 	names := [][]string{
-		{"id_", "_id", "id", "iD", "ID", "Id", "order_id", "orderId", "orderID", "OrderID"},
+		{"id_", "_id", "_ID", "id", "iD", "ID", "Id", "order_id", "orderId", "orderID", "OrderID", "__orderId"},
 		{"ip_", "_ip", "ip", "iP", "IP", "Ip", "host_ip", "hostIp", "hostIP", "HostIP"},
 		{"url_", "_url", "url", "uRL", "URL", "Url", "blog_url", "blogUrl", "blogURL", "BlogURL"},
 		{"_user_name", "user_name", "userName", "UserName"},

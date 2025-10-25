@@ -22,6 +22,7 @@ dist/
 *.iws
 
 _output/
+mysql-data/
 
 cmd/serverNameExample/serverNameExample
 # delete the templates code start
