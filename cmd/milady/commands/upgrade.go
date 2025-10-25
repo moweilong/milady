@@ -15,7 +15,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// UpgradeCommand upgrade milady binaries
+// UpgradeCommand 升级 milady 版本, 包括 milady 二进制文件、模板代码、内置插件
 func UpgradeCommand() *cobra.Command {
 	var targetVersion string
 
@@ -47,6 +47,7 @@ func UpgradeCommand() *cobra.Command {
 	return cmd
 }
 
+// runUpgrade 升级 milady 相关文件, 包括 milady 二进制文件、模板代码、内置插件
 func runUpgrade(targetVersion string) (string, error) {
 	runningTip := "Upgrading milady binary"
 	finishTip := "Upgrade milady binary done" + installedSymbol
@@ -139,7 +140,7 @@ func copyToTempDir(targetVersion string) (string, error) {
 	}
 
 	srcDir := adaptPathDelimiter(fmt.Sprintf("%s/pkg/mod/github.com/moweilong/%s", gopath, miladyDirName))
-	destDir := adaptPathDelimiter(GetMiladyDir() + "/")
+	destDir := adaptPathDelimiter(GetUserHomeDir() + "/")
 	targetDir := adaptPathDelimiter(destDir + ".milady")
 
 	err = executeCommand("rm", "-rf", targetDir)

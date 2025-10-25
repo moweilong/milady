@@ -10,7 +10,7 @@ import (
 
 var (
 	version     = "v0.0.0"
-	versionFile = GetMiladyDir() + "/.milady/.github/version"
+	versionFile = GetUserHomeDir() + "/.milady/.github/version"
 )
 
 // NewRootCMD command entry
@@ -38,9 +38,8 @@ Docs: %s`,
 	return cmd
 }
 
-// getVersion get milady version
-// need execute command "milady init" first, it will create version file in milady home directory
-// e.g. ~/.milady/.github/version
+// getVersion 获取 milady 版本
+// 版本文件存储在 milady 主目录下的 .milady/.github/version 文件中
 func getVersion() string {
 	data, _ := os.ReadFile(versionFile)
 	v := string(data)
@@ -50,11 +49,11 @@ func getVersion() string {
 	return "unknown, execute command \"milady init\" to get version"
 }
 
-// GetMiladyDir get milady home directory
-func GetMiladyDir() string {
+// GetUserHomeDir 获取用户主目录
+func GetUserHomeDir() string {
 	dir, err := os.UserHomeDir()
 	if err != nil {
-		fmt.Println("can't get home directory'")
+		fmt.Println("can't get user home directory")
 		return ""
 	}
 

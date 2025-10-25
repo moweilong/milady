@@ -44,22 +44,24 @@ type Args struct {
 	IsCustomTemplate bool // whether to use custom template, default is false
 }
 
+// checkValid check the code generation arguments
 func (a *Args) checkValid() error {
 	if a.SQL == "" && a.DDLFile == "" && (a.DBDsn == "" && a.DBTable == "") {
 		return errors.New("you must specify sql or ddl file")
 	}
 	if a.DBTable != "" {
-		tables := strings.Split(a.DBTable, ",")
-		for _, name := range tables {
+		tables := strings.SplitSeq(a.DBTable, ",")
+		for name := range tables {
 			if strings.HasSuffix(name, "_test") {
 				return fmt.Errorf(`the table name (%s) suffix "_test" is not supported for code generation, please delete suffix "_test" or change it to another name. `, name)
 			}
 		}
 	}
 
-	if a.DBDriver == "" {
+	switch a.DBDriver {
+	case "":
 		a.DBDriver = parser.DBDriverMysql
-	} else if a.DBDriver == parser.DBDriverSqlite {
+	case parser.DBDriverSqlite:
 		if !gofile.IsExists(a.DBDsn) {
 			return fmt.Errorf("sqlite db file %s not found in local host", a.DBDsn)
 		}
@@ -70,13 +72,36 @@ func (a *Args) checkValid() error {
 	return nil
 }
 
+// getSQL get the sql string from args
+//
+// if args.SQL is not empty, return args.SQL
+// if args.DDLFile is not empty, parse the sql file and return the sql string
+// if args.DBDsn is not empty, get the sql string from database and return the sql string
+//
+// return the sql string, field type map, and error
+// getSQL 从不同来源获取SQL语句
+// 该函数根据参数配置，从以下来源之一获取SQL语句：
+// 1. 直接从参数中获取SQL文本（Args.SQL）
+// 2. 从指定的SQL文件中读取（Args.SQLFile）
+// 3. 连接到数据库并获取表结构（Args.DBTable）
+// 对于不同的数据库驱动，使用相应的方法获取表结构信息。
+//
+// 参数:
+//   args - 代码生成参数配置
+//
+// 返回值:
+//   string - 获取到的SQL语句
+//   map[string]string - 字段类型映射，如果有特殊字段类型需要处理
+//   error - 获取过程中的错误，如果成功则为nil
 func getSQL(args *Args) (string, map[string]string, error) {
+	// return the sql if it is not empty
 	if args.SQL != "" {
 		return args.SQL, nil, nil
 	}
 
 	sql := ""
 	dbDriverName := strings.ToLower(args.DBDriver)
+	// only mysql is supported for parsing the sql file
 	if args.DDLFile != "" {
 		if dbDriverName != parser.DBDriverMysql {
 			return sql, nil, fmt.Errorf("not support driver %s for parsing the sql file, only mysql is supported", args.DBDriver)
@@ -123,6 +148,7 @@ func getSQL(args *Args) (string, map[string]string, error) {
 	return sql, nil, errors.New("no SQL input(-sql|-f|-db-dsn)")
 }
 
+// setOptions set the parser options
 func setOptions(args *Args) []parser.Option {
 	var opts []parser.Option
 
@@ -208,7 +234,19 @@ func GenerateOne(args *Args) (string, error) {
 	return out, nil
 }
 
-// Generate model, json, dao, handler, proto codes
+// Generate 生成模型、JSON、DAO、Handler、Proto等多种类型的代码
+// 该函数是sql2code包的主入口，负责协调整个代码生成流程：
+// 1. 验证输入参数的有效性
+// 2. 从数据库或SQL文件获取表结构信息
+// 3. 设置代码生成选项
+// 4. 调用解析器解析SQL并生成代码
+//
+// 参数:
+//   args - 代码生成参数配置，包含数据库连接信息、表名、包名等配置项
+//
+// 返回值:
+//   map[string]string - 生成的各类代码映射，键为代码类型，值为代码内容
+//   error - 代码生成过程中的错误，如果成功则为nil
 func Generate(args *Args) (map[string]string, error) {
 	if err := args.checkValid(); err != nil {
 		return nil, err

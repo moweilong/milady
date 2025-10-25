@@ -9,7 +9,7 @@ const (
 	latestVersion = "latest"
 )
 
-// InitCommand initial milady
+// InitCommand 初始化 milady
 func InitCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "init",

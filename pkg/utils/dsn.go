@@ -7,11 +7,18 @@ import (
 )
 
 // AdaptiveMysqlDsn adaptation of various mysql format dsn address
+//
+// if dsn is in the format of mysql://user:password@(host:port)/database, remove the prefix mysql://
 func AdaptiveMysqlDsn(dsn string) string {
 	return strings.ReplaceAll(dsn, "mysql://", "")
 }
 
 // AdaptivePostgresqlDsn convert postgres dsn to kv string
+//
+// if dsn is contains three space, return the dsn
+//
+// if dsn is in the format of user:password@host:port/database, add the prefix postgres://
+// then delete the brackets in dsn
 func AdaptivePostgresqlDsn(dsn string) string {
 	if strings.Count(dsn, " ") > 3 {
 		return dsn

@@ -19,6 +19,7 @@ const (
 	warnSymbol      = "⚠ "
 )
 
+// pluginNames milady 依赖插件
 var pluginNames = []string{
 	"go",
 	"protoc",
@@ -36,6 +37,7 @@ var pluginNames = []string{
 	"go-callvis",
 }
 
+// installPluginCommands 插件安装命令
 var installPluginCommands = map[string]string{
 	"go":                     "go: please install manually yourself, download url is https://go.dev/dl/ or https://golang.google.cn/dl/",
 	"protoc":                 "protoc: please install manually yourself, download url is https://github.com/protocolbuffers/protobuf/releases/tag/v31.1", // TODO 获取最新版本号
@@ -53,7 +55,7 @@ var installPluginCommands = map[string]string{
 	"go-callvis":             "github.com/ofabry/go-callvis@latest",
 }
 
-// PluginsCommand plugins management
+// PluginsCommand 插件管理, 包括插件安装、插件升级等
 func PluginsCommand() *cobra.Command {
 	var installFlag bool
 	var skipPluginName string
@@ -90,7 +92,8 @@ func PluginsCommand() *cobra.Command {
 	return cmd
 }
 
-// checkInstallPlugins check installed plugins
+// checkInstallPlugins 检查插件是否已安装
+// 返回已经安装的插件名称列表和未安装的插件名称列表
 func checkInstallPlugins() (installedNames []string, lackNames []string) {
 	for _, name := range pluginNames {
 		_, err := gobash.Exec("which", name)
@@ -110,7 +113,7 @@ func checkInstallPlugins() (installedNames []string, lackNames []string) {
 	return installedNames, lackNames
 }
 
-// filterLackNames filter lack names
+// filterLackNames 忽略指定的插件, 返回未忽略的插件名称列表
 func filterLackNames(lackNames []string, skipPluginName string) []string {
 	if skipPluginName == "" {
 		return lackNames
@@ -133,7 +136,7 @@ func filterLackNames(lackNames []string, skipPluginName string) []string {
 	return names
 }
 
-// installPlugins install plugins
+// installPlugins 安装插件
 func installPlugins(lackNames []string) {
 	if len(lackNames) == 0 {
 		fmt.Printf("\n    all dependency plugins installed.\n\n")
@@ -144,6 +147,7 @@ func installPlugins(lackNames []string) {
 	var wg = &sync.WaitGroup{}
 	var manuallyNames []string
 	for _, name := range lackNames {
+		// go 和 protoc 插件需要手动安装
 		if name == "go" || name == "protoc" {
 			manuallyNames = append(manuallyNames, name)
 			continue
@@ -152,7 +156,8 @@ func installPlugins(lackNames []string) {
 		wg.Add(1)
 		go func(name string) {
 			defer wg.Done()
-			ctx, _ := context.WithTimeout(context.Background(), time.Minute*3) //nolint
+			ctx, cancel := context.WithTimeout(context.Background(), time.Minute*3) //nolint
+			defer cancel()
 			pkgAddr, ok := installPluginCommands[name]
 			if !ok {
 				return
@@ -178,7 +183,7 @@ func installPlugins(lackNames []string) {
 	fmt.Println()
 }
 
-// adaptInternalCommand replace milady plugin version if version is not v0.0.0
+// adaptInternalCommand 适配内部插件, 如果版本不是 v0.0.0, 则替换为指定版本
 func adaptInternalCommand(name string, pkgAddr string) string {
 	if name == "protoc-gen-go-gin" || name == "protoc-gen-go-rpc-tmpl" ||
 		name == "protoc-gen-json-field" {
@@ -190,7 +195,7 @@ func adaptInternalCommand(name string, pkgAddr string) string {
 	return pkgAddr
 }
 
-// showDependencyPlugins show installed and uninstalled plugins
+// showDependencyPlugins 显示插件安装情况, 已安装的插件显示为已安装, 未安装的插件显示为未安装
 func showDependencyPlugins(installedNames []string, lackNames []string) {
 	var content string
 

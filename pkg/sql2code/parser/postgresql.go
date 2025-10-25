@@ -59,7 +59,7 @@ type PGField struct {
 	IsPrimaryKey bool   `gorm:"column:is_primary_key;" json:"is_primary_key"`
 }
 
-// nolint
+// getMysqlType convert postgresql type to mysql type
 func (field *PGField) getMysqlType() string {
 	switch field.Type {
 	case "smallint", "integer", "smallserial", "serial", "int2", "int4":
@@ -104,6 +104,7 @@ func (field *PGField) getMysqlType() string {
 
 type PGFields []*PGField
 
+// getPrimaryField get primary key field
 func (fields PGFields) getPrimaryField() *PGField {
 	var f *PGField
 	for _, field := range fields {
@@ -115,6 +116,7 @@ func (fields PGFields) getPrimaryField() *PGField {
 	return f
 }
 
+// getPostgresqlTableFields get postgresql table fields
 func getPostgresqlTableFields(db *gorm.DB, tableName string) (PGFields, error) {
 	query := fmt.Sprintf(`SELECT
     a.attname AS name,
@@ -154,6 +156,8 @@ ORDER BY a.attnum;`, tableName, tableName)
 	return fields, nil
 }
 
+// getType convert postgresql character type to mysql varchar type.
+// else not convert
 func getType(field *PGField) string {
 	switch field.Type {
 	case "character", "character varying", "varchar", "char", "bpchar":
@@ -164,6 +168,7 @@ func getType(field *PGField) string {
 	return field.Type
 }
 
+// closeDB close gorm db
 func closeDB(db *gorm.DB) {
 	sqlDB, err := db.DB()
 	if err != nil {

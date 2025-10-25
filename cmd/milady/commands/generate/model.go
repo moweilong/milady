@@ -13,7 +13,15 @@ import (
 	"github.com/moweilong/milady/pkg/sql2code/parser"
 )
 
-// ModelCommand generate model code
+// ModelCommand 创建并返回生成模型代码的命令对象
+// 该函数定义了用于从数据库表生成Go模型代码的命令行工具，支持MySQL、MongoDB、PostgreSQL和SQLite等数据库。
+// 命令允许用户通过参数指定数据库连接信息、表名、输出目录等配置。
+//
+// 参数:
+//   parentName - 父命令名称，用于生成命令示例中的完整命令路径
+//
+// 返回值:
+//   *cobra.Command - 配置好的命令对象，包含参数定义和执行逻辑
 func ModelCommand(parentName string) *cobra.Command {
 	var (
 		outPath  string // output directory
@@ -41,9 +49,23 @@ func ModelCommand(parentName string) *cobra.Command {
 			parentName, parentName, parentName)),
 		SilenceErrors: true,
 		SilenceUsage:  true,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			tableNames := strings.Split(dbTables, ",")
-			for _, tableName := range tableNames {
+		// RunE 命令执行的核心逻辑
+// 该函数处理命令行参数，遍历指定的表名，为每个表生成相应的模型代码：
+// 1. 解析表名列表（支持逗号分隔的多个表名）
+// 2. 针对每个有效的表名，配置sql2code参数
+// 3. 调用sql2code.Generate生成各类代码
+// 4. 使用modelGenerator将生成的代码写入文件系统
+// 5. 生成完成后输出帮助信息和成功消息
+//
+// 参数:
+//   cmd - 命令对象
+//   args - 命令行参数
+//
+// 返回值:
+//   error - 执行过程中的错误，如果成功则为nil
+RunE: func(cmd *cobra.Command, args []string) error {
+			tableNames := strings.SplitSeq(dbTables, ",")
+			for tableName := range tableNames {
 				if tableName == "" {
 					continue
 				}
@@ -94,9 +116,13 @@ type modelGenerator struct {
 	outPath string
 }
 
-// generateCode 生成模型代码
+// generateCode 生成模型代码并写入文件系统
+// 该方法负责将sql2code.Generate生成的各类代码写入到适当的文件中，
+// 创建必要的目录结构，并处理文件命名和内容替换。
 //
-// 返回生成的代码目录路径和可能的错误
+// 返回值:
+//   string - 生成的代码目录路径
+//   error - 生成过程中的错误，如果成功则为nil
 func (g *modelGenerator) generateCode() (string, error) {
 	// 标识要使用的子模板类型
 	subTplName := codeNameModel
