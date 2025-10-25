@@ -33,6 +33,7 @@ Docs: %s`,
 		InitCommand(),
 		UpgradeCommand(),
 		PluginsCommand(),
+		GenWebCommand(),
 	)
 
 	return cmd
