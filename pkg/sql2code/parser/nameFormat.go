@@ -50,7 +50,7 @@ var peculiarNouns = map[string]string{
 // compare the suffix, if found, replace it with the upper case.
 func toCamel(s string) string {
 	// ToCamelCase 是将由空格、下划线和连字符分隔的单词转换为驼峰式大小写。
-	str := xstrings.ToCamelCase(s)
+	str := xstrings.ToPascalCase(s)
 
 	name := strings.ToUpper(str)
 	if _, ok := peculiarNouns[name]; ok {

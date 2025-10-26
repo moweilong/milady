@@ -19,7 +19,7 @@ type options struct {
 	Charset        string
 	Collation      string
 	JSONTag        bool
-	JSONNamedType  int
+	JSONNamedType  int // 0: snake case, 1: PascalCase
 	TablePrefix    string
 	ColumnPrefix   string
 	NoNullType     bool

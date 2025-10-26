@@ -81,12 +81,14 @@ type modelCodes struct {
 // 并根据提供的选项生成相应的代码。支持生成模型、JSON、DAO、Handler、Proto等多种类型的代码。
 //
 // 参数:
-//   sql - SQL语句字符串，通常是CREATE TABLE语句
-//   options - 代码生成选项可变参数，用于自定义代码生成行为
+//
+//	sql - SQL语句字符串，通常是CREATE TABLE语句
+//	options - 代码生成选项可变参数，用于自定义代码生成行为
 //
 // 返回值:
-//   map[string]string - 键值对，键为代码类型，值为对应的代码文本
-//   error - 解析或生成过程中遇到的错误，如果成功则为nil
+//
+//	map[string]string - 键值对，键为代码类型，值为对应的代码文本
+//	error - 解析或生成过程中遇到的错误，如果成功则为nil
 func ParseSQL(sql string, options ...Option) (map[string]string, error) {
 	initTemplate()
 	initCommonTemplate()
@@ -449,12 +451,14 @@ type codeText struct {
 // 更新字段代码、处理器结构体代码、服务结构体代码和Protocol Buffers定义文件等
 //
 // 参数:
-//   stmt - SQL解析后的CREATE TABLE语句抽象语法树
-//   opt - 代码生成选项，包含表前缀、列前缀、JSON命名风格等配置
+//
+//	stmt - SQL解析后的CREATE TABLE语句抽象语法树
+//	opt - 代码生成选项，包含表前缀、列前缀、JSON命名风格等配置
 //
 // 返回值:
-//   *codeText - 包含生成的各类代码文本的结构体指针
-//   error - 生成过程中遇到的错误，如果成功则为nil
+//
+//	*codeText - 包含生成的各类代码文本的结构体指针
+//	error - 生成过程中遇到的错误，如果成功则为nil
 func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
 	importPath := make([]string, 0, 1)
 	data := tmplData{
@@ -476,6 +480,7 @@ func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
 		data.NameFunc = true
 	}
 
+	// handle mongodb json tag
 	switch opt.DBDriver {
 	case DBDriverMongodb:
 		if opt.JSONNamedType != 0 {
@@ -503,6 +508,7 @@ func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
 		}
 	}
 
+	// handle sql column
 	columnPrefix := opt.ColumnPrefix
 	for _, col := range stmt.Cols {
 		colName := col.Name.Name.String()
@@ -516,8 +522,9 @@ func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
 		} else {
 			jsonName = customToCamel(jsonName) // camel case (default)
 		}
+		goFieldNameData := toCamel(goFieldName)
 		field := tmplField{
-			Name:     toCamel(goFieldName),
+			Name:     goFieldNameData,
 			ColName:  colName,
 			JSONName: jsonName,
 		}
@@ -686,6 +693,7 @@ func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
 		}
 	}
 
+	fmt.Printf("modelStruct")
 	return &codeText{
 		importPaths:   importPaths,
 		modelStruct:   modelStructCode,

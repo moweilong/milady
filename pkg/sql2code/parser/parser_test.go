@@ -22,7 +22,7 @@ func TestParseMysqlSQL(t *testing.T) {
 	   created_time datetime NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'created time'
 	) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='orders table';`
 
-	codes, err := ParseSQL(sql, WithJSONTag(1), WithDBDriver(DBDriverMysql))
+	codes, err := ParseSQL(sql, WithJSONTag(0), WithDBDriver(DBDriverMysql))
 	assert.Nil(t, err)
 	assert.NotEmpty(t, codes)
 	printCode(codes)

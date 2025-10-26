@@ -281,3 +281,9 @@ help: Makefile  ## Show available targets and usage.
 build-milady:
 	@echo "building 'milady', linux binary file will output to 'cmd/milady'"
 	@cd cmd/milady && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags "all=-s -w"
+
+.PHONY: build-milady-mac
+# Build milady for mac arm64 binary
+build-milady-mac:
+	@echo "building 'milady', mac binary file will output to 'cmd/milady'"
+	@cd cmd/milady && CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags "all=-s -w"

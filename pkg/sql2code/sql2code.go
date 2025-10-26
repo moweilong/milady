@@ -268,6 +268,33 @@ func Generate(args *Args) (map[string]string, error) {
 	}
 
 	opt := setOptions(args)
-	fmt.Printf("generate code with options: %v\n", opt)
+	fmt.Println("生成代码的配置选项:")
+	fmt.Println("--------------------------------------------------")
+	fmt.Printf("参数总数: %d\n", len(opt))
+	fmt.Printf("数据库驱动: %s\n", args.DBDriver)
+	fmt.Printf("数据库表名: %s\n", args.DBTable)
+	if args.Package != "" {
+		fmt.Printf("包名: %s\n", args.Package)
+	}
+	if args.JSONTag {
+		fmt.Printf("JSON标签: 已启用 (命名类型: %d)\n", args.JSONNamedType)
+	}
+	if args.TablePrefix != "" {
+		fmt.Printf("表前缀: %s\n", args.TablePrefix)
+	}
+	if args.ColumnPrefix != "" {
+		fmt.Printf("列前缀: %s\n", args.ColumnPrefix)
+	}
+	if args.NullStyle != "" {
+		fmt.Printf("空值处理: %s\n", args.NullStyle)
+	}
+	fmt.Printf("无空类型: %v\n", args.NoNullType)
+	fmt.Printf("嵌入模式: %v\n", args.IsEmbed)
+	fmt.Printf("Web Proto: %v\n", args.IsWebProto)
+	fmt.Printf("GORM类型: %v\n", args.GormType)
+	fmt.Printf("强制表名: %v\n", args.ForceTableName)
+	fmt.Printf("扩展API: %v\n", args.IsExtendedAPI)
+	fmt.Printf("自定义模板: %v\n", args.IsCustomTemplate)
+	fmt.Println("--------------------------------------------------")
 	return parser.ParseSQL(sql, opt...)
 }
