@@ -13,12 +13,12 @@ import (
 	"github.com/moweilong/milady/pkg/sql2code/parser"
 )
 
-type daoGenerator struct {
+type storeGenerator struct {
 	moduleName      string
 	dbDriver        string
 	isIncludeInitDB bool
 	codes           map[string]string
-	outPath         string
+	outPath         string // 绝对路径
 	isEmbed         bool
 	isExtendedAPI   bool
 	serverName      string
@@ -27,8 +27,8 @@ type daoGenerator struct {
 	fields []replacer.Field
 }
 
-// DaoCommand generate dao code
-func DaoCommand(parentName string) *cobra.Command {
+// StoreCommand generate store code
+func StoreCommand(parentName string) *cobra.Command {
 	var (
 		moduleName      string // go.mod module name
 		outPath         string // output directory
@@ -46,20 +46,20 @@ func DaoCommand(parentName string) *cobra.Command {
 	)
 
 	cmd := &cobra.Command{
-		Use:   "dao",
-		Short: "Generate dao code based on sql",
-		Long:  "Generate dao code based on sql.",
-		Example: color.HiBlackString(fmt.Sprintf(`  # Generate dao code.
-  milady %s dao --module-name=yourModuleName --db-driver=mysql --db-dsn=root:123456@(127.0.0.1:3306)/test --db-table=user
+		Use:   "store",
+		Short: "Generate store code based on sql",
+		Long:  "Generate store code based on sql.",
+		Example: color.HiBlackString(fmt.Sprintf(`  # Generate store code.
+  milady %s store --module-name=yourModuleName --db-driver=mysql --db-dsn=root:123456@(127.0.0.1:3306)/test --db-table=user
 
-  # Generate dao code with multiple table names.
-  milady %s dao --module-name=yourModuleName --db-driver=mysql --db-dsn=root:123456@(127.0.0.1:3306)/test --db-table=t1,t2
+  # Generate store code with multiple table names.
+  milady %s store --module-name=yourModuleName --db-driver=mysql --db-dsn=root:123456@(127.0.0.1:3306)/test --db-table=t1,t2
 
-  # Generate dao code with extended api.
-  milady %s dao --module-name=yourModuleName --db-driver=mysql --db-dsn=root:123456@(127.0.0.1:3306)/test --db-table=user --extended-api=true
+  # Generate store code with extended api.
+  milady %s store --module-name=yourModuleName --db-driver=mysql --db-dsn=root:123456@(127.0.0.1:3306)/test --db-table=user --extended-api=true
 
-  # Generate dao code and specify the server directory, Note: code generation will be canceled when the latest generated file already exists.
-  milady %s dao --module-name=yourModuleName --db-driver=mysql --db-dsn=root:123456@(127.0.0.1:3306)/test --db-table=user --out=./yourServerDir
+  # Generate store code and specify the server directory, Note: code generation will be canceled when the latest generated file already exists.
+  milady %s store --module-name=yourModuleName --db-driver=mysql --db-dsn=root:123456@(127.0.0.1:3306)/test --db-table=user --out=./yourServerDir
 
   # If you want the generated code to suited to mono-repo, you need to set the parameter --suited-mono-repo=true --server-name=yourServerName`,
 			parentName, parentName, parentName, parentName)),
@@ -75,6 +75,7 @@ func DaoCommand(parentName string) *cobra.Command {
 			} else if moduleName == "" {
 				return fmt.Errorf(`required flag(s) "module-name" not set, use "milady %s dao -h" for help`, parentName)
 			}
+			// TODO 先忽略这里
 			if suitedMonoRepo {
 				if serverName == "" {
 					return fmt.Errorf(`required flag(s) "server-name" not set, use "milady %s dao -h" for help`, parentName)
@@ -83,6 +84,7 @@ func DaoCommand(parentName string) *cobra.Command {
 				outPath = changeOutPath(outPath, serverName)
 			}
 
+			// 数据库表，多个表名用逗号分隔，生成 model 代码
 			tableNames := strings.Split(dbTables, ",")
 			for count, tableName := range tableNames {
 				if tableName == "" {
@@ -93,6 +95,7 @@ func DaoCommand(parentName string) *cobra.Command {
 					sqlArgs.IsEmbed = false
 				}
 				sqlArgs.DBTable = tableName
+				// 生成 model 代码
 				codes, err := sql2code.Generate(&sqlArgs)
 				if err != nil {
 					return err
@@ -105,16 +108,17 @@ func DaoCommand(parentName string) *cobra.Command {
 					isIncludeInitDB = false
 				}
 
-				g := &daoGenerator{
-					moduleName:      moduleName,
+				// 生成 store 代码
+				g := &storeGenerator{
+					moduleName:      moduleName, // go 模块名
 					dbDriver:        sqlArgs.DBDriver,
 					isIncludeInitDB: isIncludeInitDB,
-					codes:           codes,
+					codes:           codes, // model 代码
 					outPath:         outPath,
-					serverName:      serverName,
-					isEmbed:         sqlArgs.IsEmbed,
-					isExtendedAPI:   sqlArgs.IsExtendedAPI,
-					suitedMonoRepo:  suitedMonoRepo,
+					serverName:      serverName,            // 服务名
+					isEmbed:         sqlArgs.IsEmbed,       // 是否嵌入 gorm.model 结构体
+					isExtendedAPI:   sqlArgs.IsExtendedAPI, // 是否生成扩展 API
+					suitedMonoRepo:  suitedMonoRepo,        // 是否适合多仓库项目
 				}
 				outPath, err = g.generateCode()
 				if err != nil {
@@ -150,8 +154,10 @@ using help:
 	return cmd
 }
 
-func (g *daoGenerator) generateCode() (string, error) {
-	subTplName := codeNameDao
+// generateCode code generation
+func (g *storeGenerator) generateCode() (string, error) {
+	// subTplName 子模板名称 ，用于选择不同的模板文件, 这里选择 store 模板
+	subTplName := codeNameStore
 	r, _ := replacer.New(MiladyDir)
 	if r == nil {
 		return "", errors.New("r is nil")
@@ -162,17 +168,15 @@ func (g *daoGenerator) generateCode() (string, error) {
 	subFiles := []string{}
 
 	selectFiles := map[string][]string{
-		"internal/cache": {
-			"userExample.go", "userExample_test.go",
-		},
-		"internal/dao": {
-			"userExample.go", "userExample_test.go",
+		"internal/apiserver/store": {
+			"store.go", "userExample.go",
 		},
 		"internal/model": {
 			"userExample.go",
 		},
 	}
 
+	// 从 codes 中获取 crudInfo
 	info := g.codes[parser.CodeTypeCrudInfo]
 	crudInfo, _ := unmarshalCrudInfo(info)
 	if crudInfo.CheckCommonType() {
@@ -187,13 +191,9 @@ func (g *daoGenerator) generateCode() (string, error) {
 				"userExample.go",
 			},
 		}
-		var fields []replacer.Field
-		if g.isExtendedAPI {
-			selectFiles["internal/dao"] = []string{"userExample.go.exp.tpl"}
-			fields = commonDaoExtendedFields(r)
-		} else {
-			fields = commonDaoFields(r)
-		}
+
+		fields := commonStoreFields(r)
+
 		contentFields, err := replaceFilesContent(r, getTemplateFiles(selectFiles), crudInfo)
 		if err != nil {
 			return "", err
@@ -206,13 +206,6 @@ func (g *daoGenerator) generateCode() (string, error) {
 	switch strings.ToLower(g.dbDriver) {
 	case DBDriverMysql, DBDriverPostgresql, DBDriverTidb, DBDriverSqlite:
 		g.fields = append(g.fields, getExpectedSQLForDeletionField(g.isEmbed)...)
-		if g.isExtendedAPI {
-			var fields []replacer.Field
-			if !crudInfo.CheckCommonType() {
-				replaceFiles, fields = daoExtendedAPI(r)
-			}
-			g.fields = append(g.fields, fields...)
-		}
 
 	case DBDriverMongodb:
 		if g.isExtendedAPI {
@@ -247,8 +240,8 @@ func (g *daoGenerator) generateCode() (string, error) {
 	return r.GetOutputDir(), nil
 }
 
-// set fields
-func (g *daoGenerator) addFields(r replacer.Replacer) []replacer.Field {
+// addFields 添加字段、删除字段标记
+func (g *storeGenerator) addFields(r replacer.Replacer) []replacer.Field {
 	var fields []replacer.Field
 	fields = append(fields, g.fields...)
 	fields = append(fields, deleteFieldsMark(r, modelFile, startMark, endMark)...)
@@ -299,7 +292,7 @@ func (g *daoGenerator) addFields(r replacer.Replacer) []replacer.Field {
 	return fields
 }
 
-func daoExtendedAPI(r replacer.Replacer) (map[string][]string, []replacer.Field) {
+func storeExtendedAPI(r replacer.Replacer) (map[string][]string, []replacer.Field) {
 	replaceFiles := map[string][]string{
 		"internal/dao": {
 			"userExample.go.exp", "userExample_test.go.exp",
@@ -324,35 +317,7 @@ func daoExtendedAPI(r replacer.Replacer) (map[string][]string, []replacer.Field)
 	return replaceFiles, fields
 }
 
-func daoMongoDBExtendedAPI(r replacer.Replacer) (map[string][]string, []replacer.Field) {
-	replaceFiles := map[string][]string{
-		"internal/cache": {
-			"userExample.go.mgo",
-		},
-		"internal/dao": {
-			"userExample.go.mgo.exp",
-		},
-	}
-
-	var fields []replacer.Field
-
-	fields = append(fields, deleteFieldsMark(r, daoMgoFile+expSuffix, startMark, endMark)...)
-
-	fields = append(fields, []replacer.Field{
-		{
-			Old: "userExample.go.mgo.exp",
-			New: "userExample.go",
-		},
-		{
-			Old: "userExample.go.mgo",
-			New: "userExample.go",
-		},
-	}...)
-
-	return replaceFiles, fields
-}
-
-func commonDaoFields(r replacer.Replacer) []replacer.Field {
+func commonStoreFields(r replacer.Replacer) []replacer.Field {
 	var fields []replacer.Field
 
 	fields = append(fields, deleteFieldsMark(r, daoFile+tplSuffix, startMark, endMark)...)
@@ -361,26 +326,6 @@ func commonDaoFields(r replacer.Replacer) []replacer.Field {
 	fields = append(fields, []replacer.Field{
 		{
 			Old: "userExample.go.tpl",
-			New: "userExample.go",
-		},
-	}...)
-
-	return fields
-}
-
-func commonDaoExtendedFields(r replacer.Replacer) []replacer.Field {
-	var fields []replacer.Field
-
-	fields = append(fields, deleteFieldsMark(r, daoFile+expSuffix+tplSuffix, startMark, endMark)...)
-	fields = append(fields, deleteFieldsMark(r, daoTestFile+expSuffix+tplSuffix, startMark, endMark)...)
-
-	fields = append(fields, []replacer.Field{
-		{
-			Old: "userExample.go.tpl",
-			New: "userExample.go",
-		},
-		{
-			Old: "userExample.go.exp.tpl",
 			New: "userExample.go",
 		},
 	}...)

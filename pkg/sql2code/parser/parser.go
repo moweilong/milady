@@ -693,7 +693,6 @@ func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
 		}
 	}
 
-	fmt.Printf("modelStruct")
 	return &codeText{
 		importPaths:   importPaths,
 		modelStruct:   modelStructCode,

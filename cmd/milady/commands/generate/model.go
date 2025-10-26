@@ -18,10 +18,12 @@ import (
 // 命令允许用户通过参数指定数据库连接信息、表名、输出目录等配置。
 //
 // 参数:
-//   parentName - 父命令名称，用于生成命令示例中的完整命令路径
+//
+//	parentName - 父命令名称，用于生成命令示例中的完整命令路径
 //
 // 返回值:
-//   *cobra.Command - 配置好的命令对象，包含参数定义和执行逻辑
+//
+//	*cobra.Command - 配置好的命令对象，包含参数定义和执行逻辑
 func ModelCommand(parentName string) *cobra.Command {
 	var (
 		outPath  string // output directory
@@ -50,20 +52,20 @@ func ModelCommand(parentName string) *cobra.Command {
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		// RunE 命令执行的核心逻辑
-// 该函数处理命令行参数，遍历指定的表名，为每个表生成相应的模型代码：
-// 1. 解析表名列表（支持逗号分隔的多个表名）
-// 2. 针对每个有效的表名，配置sql2code参数
-// 3. 调用sql2code.Generate生成各类代码
-// 4. 使用modelGenerator将生成的代码写入文件系统
-// 5. 生成完成后输出帮助信息和成功消息
-//
-// 参数:
-//   cmd - 命令对象
-//   args - 命令行参数
-//
-// 返回值:
-//   error - 执行过程中的错误，如果成功则为nil
-RunE: func(cmd *cobra.Command, args []string) error {
+		// 该函数处理命令行参数，遍历指定的表名，为每个表生成相应的模型代码：
+		// 1. 解析表名列表（支持逗号分隔的多个表名）
+		// 2. 针对每个有效的表名，配置sql2code参数
+		// 3. 调用sql2code.Generate生成各类代码
+		// 4. 使用modelGenerator将生成的代码写入文件系统
+		// 5. 生成完成后输出帮助信息和成功消息
+		//
+		// 参数:
+		//   cmd - 命令对象
+		//   args - 命令行参数
+		//
+		// 返回值:
+		//   error - 执行过程中的错误，如果成功则为nil
+		RunE: func(cmd *cobra.Command, args []string) error {
 			tableNames := strings.SplitSeq(dbTables, ",")
 			for tableName := range tableNames {
 				if tableName == "" {
@@ -91,7 +93,7 @@ RunE: func(cmd *cobra.Command, args []string) error {
 
 			fmt.Printf(`
 using help:
-  move the folder "internal/apiserver" to your project code folder.
+  move the folder "internal" to your project code folder.
 
 `)
 			fmt.Printf("generate \"model\" code successfully, out = %s\n", outPath)
@@ -100,12 +102,12 @@ using help:
 	}
 
 	cmd.Flags().StringVarP(&sqlArgs.DBDriver, "db-driver", "k", "mysql", "database driver, support mysql, mongodb, postgresql, sqlite")
-	cmd.Flags().StringVarP(&sqlArgs.DBDsn, "db-dsn", "d", "", "database content address, e.g. user:password@(host:port)/database. Note: if db-driver=sqlite, db-dsn must be a local sqlite db file, e.g. --db-dsn=/tmp/sponge_sqlite.db") //nolint
+	cmd.Flags().StringVarP(&sqlArgs.DBDsn, "db-dsn", "d", "", "database content address, e.g. user:password@(host:port)/database. Note: if db-driver=sqlite, db-dsn must be a local sqlite db file, e.g. --db-dsn=/tmp/milady_sqlite.db") //nolint
 	_ = cmd.MarkFlagRequired("db-dsn")
 	cmd.Flags().StringVarP(&dbTables, "db-table", "t", "", "table name, multiple names separated by commas")
 	_ = cmd.MarkFlagRequired("db-table")
 	cmd.Flags().BoolVarP(&sqlArgs.IsEmbed, "embed", "e", false, "whether to embed gorm.model struct")
-	cmd.Flags().IntVarP(&sqlArgs.JSONNamedType, "json-name-type", "j", 1, "json tags name type, 0:snake case, 1:camel case")
+	cmd.Flags().IntVarP(&sqlArgs.JSONNamedType, "json-name-type", "j", 0, "json tags name type, 0:snake case, 1:camel case")
 	cmd.Flags().StringVarP(&outPath, "out", "o", "", "output directory, default is ./model_<time>")
 
 	return cmd
@@ -121,8 +123,9 @@ type modelGenerator struct {
 // 创建必要的目录结构，并处理文件命名和内容替换。
 //
 // 返回值:
-//   string - 生成的代码目录路径
-//   error - 生成过程中的错误，如果成功则为nil
+//
+//	string - 生成的代码目录路径
+//	error - 生成过程中的错误，如果成功则为nil
 func (g *modelGenerator) generateCode() (string, error) {
 	// 标识要使用的子模板类型
 	subTplName := codeNameModel

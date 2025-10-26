@@ -56,6 +56,7 @@ const (
 	codeNameService     = "service"
 	codeNameServiceHTTP = "service-handler"
 	codeNameDao         = "dao"
+	codeNameStore       = "store"
 	codeNameProtobuf    = "protobuf"
 	codeNameModel       = "model"
 	codeNameGRPCConn    = "grpc-conn"
@@ -398,6 +399,7 @@ func saveEmptySwaggerJSON(outputDir string) error {
 }
 
 // get moduleName and serverName from directory
+// the file gen.info is saved in the directory eg: docs/gen.info
 func getNamesFromOutDir(dir string) (moduleName string, serverName string, suitedMonoRepo bool) {
 	if dir == "" {
 		return "", "", false
@@ -799,6 +801,7 @@ func changeOutPath(outPath string, serverName string) string {
 	return outPath + gofile.GetPathDelimiter() + serverName
 }
 
+// getSubFiles 将 selectFiles 中的文件路径替换为 replaceFiles 中的文件路径，然后返回所有文件路径
 func getSubFiles(selectFiles map[string][]string, replaceFiles map[string][]string) []string {
 	files := []string{}
 	for dir, filenames := range selectFiles {
@@ -945,6 +948,7 @@ func adaptPgDsn(dsn string) string {
 	return strings.ReplaceAll(u.String(), "postgres://", "")
 }
 
+// unmarshalCrudInfo unmarshal crud info
 func unmarshalCrudInfo(str string) (*parser.CrudInfo, error) {
 	if str == "" {
 		return nil, errors.New("crud info is empty")
