@@ -43,7 +43,7 @@ var peculiarNouns = map[string]string{
 	"XSS":   "Xss",
 }
 
-// toCamel is to convert string to camel case.
+// toCamel is to convert string to pascal case.
 //
 // if the string is in peculiarNouns, return the upper case.
 // otherwise, iterate the peculiarNouns, if length of the string is greater than the length of the peculiar noun,

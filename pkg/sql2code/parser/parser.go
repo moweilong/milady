@@ -92,6 +92,7 @@ type modelCodes struct {
 func ParseSQL(sql string, options ...Option) (map[string]string, error) {
 	initTemplate()
 	initCommonTemplate()
+	// 解析选项
 	opt := parseOption(options)
 
 	stmts, err := parser.New().Parse(sql, opt.Charset, opt.Collation)
@@ -163,11 +164,11 @@ func ParseSQL(sql string, options ...Option) (map[string]string, error) {
 type tmplData struct {
 	TableNamePrefix string
 
-	RawTableName    string // raw table name, example: foo_bar
-	TableName       string // table name in camel case, example: FooBar
+	RawTableName    string // raw table name, example: foo_bar, 原始表名
+	TableName       string // table name in pascal case, example: FooBar
 	TName           string // table name first letter in lower case, example: fooBar
 	NameFunc        bool
-	Fields          []tmplField
+	Fields          []tmplField // 表字段信息
 	Comment         string
 	SubStructs      string // sub structs for model
 	ProtoSubStructs string // sub structs for protobuf
@@ -178,12 +179,12 @@ type tmplData struct {
 
 type tmplField struct {
 	IsPrimaryKey bool   // is primary key
-	ColName      string // table column name
+	ColName      string // table column name, 原始列名
 	Name         string // field name in pascal case, example: FirstName
 	GoType       string // convert to go type
 	Tag          string
 	Comment      string
-	JSONName     string
+	JSONName     string // json tag
 	DBDriver     string
 
 	rewriterField *rewriterField
@@ -436,6 +437,17 @@ var newlineIdentifier = []struct{ old, new string }{
 	{"\n////", "\n//"},
 }
 
+// replaceCommentNewline 替换注释中的换行符
+// 该函数将注释中的Windows换行符（\r\n）、Unix换行符（\n）和旧版Mac换行符（\r）
+// 替换为Go代码中常用的注释格式（//）
+//
+// 参数:
+//
+//	comment - 要处理的注释字符串
+//
+// 返回值:
+//
+//	替换后的注释字符串
 func replaceCommentNewline(comment string) string {
 	for _, r := range newlineIdentifier {
 		if strings.Contains(comment, r.old) {
@@ -472,7 +484,7 @@ type codeText struct {
 //	*codeText - 包含生成的各类代码文本的结构体指针
 //	error - 生成过程中遇到的错误，如果成功则为nil
 func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
-	importPath := make([]string, 0, 1)
+	importPath := make([]string, 0, 1) // 模板的导入路径
 	data := tmplData{
 		TableNamePrefix: opt.TablePrefix,
 		RawTableName:    stmt.Table.Name.String(),
@@ -481,7 +493,7 @@ func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
 
 	tablePrefix := data.TableNamePrefix
 	if tablePrefix != "" && strings.HasPrefix(data.RawTableName, tablePrefix) {
-		data.NameFunc = true
+		data.NameFunc = true // TODO 用途？
 		data.TableName = toCamel(data.RawTableName[len(tablePrefix):])
 	} else {
 		data.TableName = toCamel(data.RawTableName)
@@ -489,7 +501,7 @@ func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
 	data.TName = firstLetterToLower(data.TableName)
 
 	if opt.ForceTableName || data.RawTableName != inflection.Plural(data.RawTableName) {
-		data.NameFunc = true
+		data.NameFunc = true // true：原始表名不是复数形式
 	}
 
 	// handle mongodb json tag
@@ -523,10 +535,11 @@ func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
 	// handle sql column
 	columnPrefix := opt.ColumnPrefix
 	for _, col := range stmt.Cols {
+		// colName 原始列名
 		colName := col.Name.Name.String()
 		goFieldName := colName
 		if columnPrefix != "" && strings.HasPrefix(goFieldName, columnPrefix) {
-			goFieldName = goFieldName[len(columnPrefix):]
+			goFieldName = goFieldName[len(columnPrefix):] // 移除列前缀
 		}
 		jsonName := colName
 		if opt.JSONNamedType == 0 { // snake case
@@ -640,9 +653,11 @@ func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
 		data.Fields = append(data.Fields, field)
 	}
 
+	// 处理子结构体
 	if v, ok := opt.FieldTypes[SubStructKey]; ok {
 		data.SubStructs = v
 	}
+	// 处理 protobuf 子结构体
 	if v, ok := opt.FieldTypes[ProtoSubStructKey]; ok {
 		data.ProtoSubStructs = v
 	}
@@ -1218,7 +1233,7 @@ func addCommaToJSON(modelJSONCode string) string {
 	return out
 }
 
-// nolint
+// mysqlToGoType
 func mysqlToGoType(colTp *types.FieldType, style NullStyle) (name string, path string, rrField *rewriterField) {
 	if style == NullInSql {
 		path = "database/sql"
@@ -1401,13 +1416,16 @@ func makeTagStr(tags []string) string {
 	return builder.String()
 }
 
+// getDefaultValue 获取字段默认值
 func getDefaultValue(expr ast.ExprNode) (value string) {
+	// 处理常量表达式
 	if expr.GetDatum().Kind() != types.KindNull {
+		// 非空值，直接转换为字符串
 		value = fmt.Sprintf("%v", expr.GetDatum().GetValue())
-	} else if expr.GetFlag() != ast.FlagConstant {
+	} else if expr.GetFlag() != ast.FlagConstant { // 非常量表达式
 		if expr.GetFlag() == ast.FlagHasFunc {
 			if funcExpr, ok := expr.(*ast.FuncCallExpr); ok {
-				value = funcExpr.FnName.O
+				value = funcExpr.FnName.O // 原始函数名
 			}
 		}
 	}

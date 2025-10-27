@@ -25,7 +25,7 @@ type options struct {
 	NoNullType     bool              // 是否禁用null类型
 	NullStyle      NullStyle         // null类型，默认NullInSql
 	Package        string            // 包名，默认 model
-	GormType       bool              // 是否使用 gorm tag
+	GormType       bool              // 是否使用 gorm type tag
 	ForceTableName bool              // 是否强制使用表名
 	IsEmbed        bool              // is gorm.Model embedded
 	IsWebProto     bool              // true: proto file include router path and swagger info, false: normal proto file without router and swagger
@@ -158,6 +158,7 @@ func WithCustomTemplate() Option {
 	}
 }
 
+// parseOption apply options to override default options
 func parseOption(options []Option) options {
 	o := defaultOptions
 	for _, f := range options {
