@@ -11,16 +11,16 @@ import (
 
 // CrudInfo crud info for cache, dao, handler, service, protobuf, error
 type CrudInfo struct {
-	TableNameCamel          string `json:"tableNameCamel"`          // camel case, example: FooBar
-	TableNameCamelFCL       string `json:"tableNameCamelFCL"`       // camel case and first character lower, example: fooBar
-	TableNamePluralCamel    string `json:"tableNamePluralCamel"`    // plural, camel case, example: FooBars
-	TableNamePluralCamelFCL string `json:"tableNamePluralCamelFCL"` // plural, camel case, example: fooBars
+	TableNameCamel          string `json:"tableNameCamel"`          // pascal case, example: FooBar. 帕斯卡命名法
+	TableNameCamelFCL       string `json:"tableNameCamelFCL"`       // camel case and first character lower, example: fooBar. 驼峰命名法，首字母小写
+	TableNamePluralCamel    string `json:"tableNamePluralCamel"`    // plural, pascal case, example: FooBars. 帕斯卡命名法，复数形式
+	TableNamePluralCamelFCL string `json:"tableNamePluralCamelFCL"` // plural, camel case, example: fooBars. 驼峰命名法，复数形式，首字母小写
 
-	ColumnName               string `json:"columnName"`               // column name, example: first_name
-	ColumnNameCamel          string `json:"columnNameCamel"`          // column name, camel case, example: FirstName
-	ColumnNameCamelFCL       string `json:"columnNameCamelFCL"`       // column name, camel case and first character lower, example: firstName
-	ColumnNamePluralCamel    string `json:"columnNamePluralCamel"`    // column name, plural, camel case, example: FirstNames
-	ColumnNamePluralCamelFCL string `json:"columnNamePluralCamelFCL"` // column name, plural, camel case and first character lower, example: firstNames
+	ColumnName               string `json:"columnName"`               // column name, example: first_name. 蛇形命名法
+	ColumnNameCamel          string `json:"columnNameCamel"`          // column name, pascal case, example: FirstName, 帕斯卡命名法
+	ColumnNameCamelFCL       string `json:"columnNameCamelFCL"`       // column name, camel case and first character lower, example: firstName, 驼峰命名法，首字母小写
+	ColumnNamePluralCamel    string `json:"columnNamePluralCamel"`    // column name, plural, pascal case, example: FirstNames, 帕斯卡命名法，复数形式
+	ColumnNamePluralCamelFCL string `json:"columnNamePluralCamelFCL"` // column name, plural, camel case and first character lower, example: firstNames, 驼峰命名法，复数形式，首字母小写
 
 	GoType       string `json:"goType"`       // go type, example: string, uint64
 	GoTypeFCU    string `json:"goTypeFCU"`    // go type, first character upper, example: String, Uint64
@@ -32,6 +32,7 @@ type CrudInfo struct {
 	IsStandardPrimaryKey bool   `json:"isStandardPrimaryKey"` // standard primary key id
 }
 
+// isDesiredGoType define the desired（期望） go type, check if the go type is desired type
 func isDesiredGoType(t string) bool {
 	switch t {
 	case "string", "uint64", "int64", "uint", "int", "uint32", "int32": //nolint
@@ -40,18 +41,21 @@ func isDesiredGoType(t string) bool {
 	return false
 }
 
+// setCrudInfo set crud info from tmplField
 func setCrudInfo(field tmplField) *CrudInfo {
 	primaryKeyName := ""
 	if field.IsPrimaryKey {
 		primaryKeyName = field.ColName
 	}
+	// 复数形式
 	pluralName := inflection.Plural(field.Name)
 
+	// tmplField to CrudInfo
 	info := &CrudInfo{
 		ColumnName:               field.ColName,
 		ColumnNameCamel:          field.Name,
 		ColumnNameCamelFCL:       customFirstLetterToLower(field.Name),
-		ColumnNamePluralCamel:    customEndOfLetterToLower(field.Name, pluralName),
+		ColumnNamePluralCamel:    customEndOfLetterToLower(field.Name, pluralName), // TODO 和结构体注释不一致，不是 Pascal 命名法
 		ColumnNamePluralCamelFCL: customFirstLetterToLower(customEndOfLetterToLower(field.Name, pluralName)),
 		GoType:                   field.GoType,
 		GoTypeFCU:                firstLetterToUpper(field.GoType),
@@ -71,11 +75,13 @@ func setCrudInfo(field tmplField) *CrudInfo {
 	return info
 }
 
+// newCrudInfo create crud info from tmplData
 func newCrudInfo(data tmplData) *CrudInfo {
 	if len(data.Fields) == 0 {
 		return nil
 	}
 
+	// find primary key
 	var info *CrudInfo
 	for _, field := range data.Fields {
 		if field.IsPrimaryKey {
@@ -113,12 +119,13 @@ func newCrudInfo(data tmplData) *CrudInfo {
 	info.TableNameCamelFCL = data.TName
 
 	pluralName := inflection.Plural(data.TableName)
-	info.TableNamePluralCamel = customEndOfLetterToLower(data.TableName, pluralName)
+	info.TableNamePluralCamel = customEndOfLetterToLower(data.TableName, pluralName) // TODO 和结构体注释不一致，不是 Pascal 命名法
 	info.TableNamePluralCamelFCL = customFirstLetterToLower(customEndOfLetterToLower(data.TableName, pluralName))
 
 	return info
 }
 
+// getCode return crud info json string
 func (info *CrudInfo) getCode() string {
 	if info == nil {
 		return ""
@@ -127,6 +134,7 @@ func (info *CrudInfo) getCode() string {
 	return string(pkData)
 }
 
+// CheckCommonType check if the primary key is custom primary key, not standard primary key id
 func (info *CrudInfo) CheckCommonType() bool {
 	if info == nil {
 		return false
@@ -134,6 +142,7 @@ func (info *CrudInfo) CheckCommonType() bool {
 	return info.IsCommonType
 }
 
+// isIDPrimaryKey check if the primary key is standard primary key id
 func (info *CrudInfo) isIDPrimaryKey() bool {
 	if info == nil {
 		return false
@@ -149,6 +158,7 @@ func (info *CrudInfo) isIDPrimaryKey() bool {
 	return false
 }
 
+// GetGRPCProtoValidation return grpc proto validation tag
 func (info *CrudInfo) GetGRPCProtoValidation() string {
 	if info == nil {
 		return ""
@@ -159,6 +169,7 @@ func (info *CrudInfo) GetGRPCProtoValidation() string {
 	return fmt.Sprintf(`[(validate.rules).%s.gt = 0]`, info.ProtoType)
 }
 
+// GetWebProtoValidation return web proto validation tag
 func (info *CrudInfo) GetWebProtoValidation() string {
 	if info == nil {
 		return ""
@@ -170,6 +181,7 @@ func (info *CrudInfo) GetWebProtoValidation() string {
 }
 
 func getCommonHandlerStructCodes(data tmplData, jsonNamedType int) (string, error) {
+	// 处理字段的 JSON 名称和 Go 类型
 	newFields := []tmplField{}
 	for _, field := range data.Fields {
 		if jsonNamedType == 0 { // snake case
@@ -177,21 +189,24 @@ func getCommonHandlerStructCodes(data tmplData, jsonNamedType int) (string, erro
 		} else {
 			field.JSONName = customToCamel(field.ColName) // camel case (default)
 		}
-		field.GoType = getHandlerGoType(&field)
+		field.GoType = getHandlerGoType(&field) // 处理 Go 类型，确保在处理器层使用合适的数据类型
 		newFields = append(newFields, field)
 	}
 	data.Fields = newFields
 
+	// TODO handlerCreateStructCommonTmpl 的用途待更新
 	postStructCode, err := tmplExecuteWithFilter(data, handlerCreateStructCommonTmpl)
 	if err != nil {
 		return "", fmt.Errorf("handlerCreateStructTmpl error: %v", err)
 	}
 
+	// TODO handlerUpdateStructCommonTmpl 的用途待更新
 	putStructCode, err := tmplExecuteWithFilter(data, handlerUpdateStructCommonTmpl, columnID)
 	if err != nil {
 		return "", fmt.Errorf("handlerUpdateStructTmpl error: %v", err)
 	}
 
+	// TODO handlerDetailStructCommonTmpl 的用途待更新
 	getStructCode, err := tmplExecuteWithFilter(data, handlerDetailStructCommonTmpl, columnID, columnCreatedAt, columnUpdatedAt)
 	if err != nil {
 		return "", fmt.Errorf("handlerDetailStructTmpl error: %v", err)
@@ -302,7 +317,7 @@ func tmplExecuteWithFilter2(data tmplData, tmpl *template.Template, reservedColu
 	return builder.String(), nil
 }
 
-// nolint
+// simpleGoTypeToProtoType convert go type to proto type
 func simpleGoTypeToProtoType(goType string) string {
 	var protoType string
 	switch goType {
@@ -364,19 +379,22 @@ func firstLetterToUpper(str string) string {
 	return str
 }
 
+// customFirstLetterToLower convert first letter to lower case, special case: ID -> id, IP -> ip
 func customFirstLetterToLower(str string) string {
 	str = firstLetterToLower(str)
 
 	if len(str) == 2 {
-		if str == "iD" {
+		switch str {
+		case "iD":
 			str = "id"
-		} else if str == "iP" {
+		case "iP":
 			str = "ip"
 		}
 	} else if len(str) == 3 {
-		if str == "iDs" {
+		switch str {
+		case "iDs":
 			str = "ids"
-		} else if str == "iPs" {
+		case "iPs":
 			str = "ips"
 		}
 	}
@@ -384,13 +402,30 @@ func customFirstLetterToLower(str string) string {
 	return str
 }
 
+// customEndOfLetterToLower 将单词复数形式的结尾字母从大写转为小写
+// 保持单词主体部分的大小写不变，只处理复数后缀
+//
+// 参数:
+//
+//	srcStr: 原始单词 (如 "iD")
+//	str: 原始单词的复数形式 (如 "iDS")
+//
+// 返回值:
+//
+//	处理后的复数形式，复数后缀保持小写 (如 "iDs")
+//
+// 示例:
+//
+//	srcStr: "iD", str: "iDS" → return: "iDs"
+//	srcStr: "bUS", str: "bUSES" → return: "bUSes"
 func customEndOfLetterToLower(srcStr string, str string) string {
 	l := len(str) - len(srcStr)
-	if l == 1 {
+	switch l {
+	case 1:
 		if str[len(str)-1] == 'S' {
 			return str[:len(str)-1] + "s"
 		}
-	} else if l == 2 {
+	case 2:
 		if str[len(str)-2:] == "ES" {
 			return str[:len(str)-2] + "es"
 		}
@@ -399,6 +434,23 @@ func customEndOfLetterToLower(srcStr string, str string) string {
 	return str
 }
 
+// getHandlerGoType 根据字段信息获取适合处理器使用的 Go 类型
+// 根据数据库驱动和字段类型进行特殊处理，确保在处理器层使用合适的数据类型
+//
+// 参数:
+//
+//	field: 模板字段信息，包含数据库驱动类型和原始字段类型等信息
+//
+// 返回值:
+//
+//	处理后的 Go 类型字符串，如 "string", "*bool", "*time.Time" 等
+//
+// 处理规则:
+//  1. 对于 MySQL, PostgreSQL, TiDB 等数据库:
+//     - JSON 类型转换为 string
+//     - 布尔类型转换为 *bool (指针类型允许空值)
+//     - DECIMAL 类型转换为 string
+//  2. 对于 time.Time 类型，统一转换为 *time.Time
 func getHandlerGoType(field *tmplField) string {
 	var goType = field.GoType
 	if field.DBDriver == DBDriverMysql || field.DBDriver == DBDriverPostgresql || field.DBDriver == DBDriverTidb {

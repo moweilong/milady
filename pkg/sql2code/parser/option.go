@@ -14,24 +14,24 @@ const (
 type Option func(*options)
 
 type options struct {
-	DBDriver       string
+	DBDriver       string            // 数据库驱动，默认mysql
 	FieldTypes     map[string]string // name:type
-	Charset        string
-	Collation      string
-	JSONTag        bool
-	JSONNamedType  int // 0: snake case, 1: PascalCase
-	TablePrefix    string
-	ColumnPrefix   string
-	NoNullType     bool
-	NullStyle      NullStyle
-	Package        string
-	GormType       bool
-	ForceTableName bool
-	IsEmbed        bool // is gorm.Model embedded
-	IsWebProto     bool // true: proto file include router path and swagger info, false: normal proto file without router and swagger
-	IsExtendedAPI  bool // true: extended api (9 api), false: basic api (5 api)
+	Charset        string            // 数据库字符集
+	Collation      string            // 数据库排序规则
+	JSONTag        bool              // 是否添加json tag
+	JSONNamedType  int               // 0: snake case, 1: PascalCase
+	TablePrefix    string            // 表前缀
+	ColumnPrefix   string            // 列前缀
+	NoNullType     bool              // 是否禁用null类型
+	NullStyle      NullStyle         // null类型，默认NullInSql
+	Package        string            // 包名，默认 model
+	GormType       bool              // 是否使用 gorm tag
+	ForceTableName bool              // 是否强制使用表名
+	IsEmbed        bool              // is gorm.Model embedded
+	IsWebProto     bool              // true: proto file include router path and swagger info, false: normal proto file without router and swagger
+	IsExtendedAPI  bool              // true: extended api (9 api), false: basic api (5 api)
 
-	IsCustomTemplate bool // true: custom extend template, false: sponge template
+	IsCustomTemplate bool // true: custom extend template, false: use milady template
 }
 
 var defaultOptions = options{

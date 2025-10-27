@@ -179,7 +179,7 @@ type tmplData struct {
 type tmplField struct {
 	IsPrimaryKey bool   // is primary key
 	ColName      string // table column name
-	Name         string // convert to camel case
+	Name         string // field name in pascal case, example: FirstName
 	GoType       string // convert to go type
 	Tag          string
 	Comment      string
@@ -406,6 +406,18 @@ var ignoreColumns = map[string]struct{}{
 	columnMysqlModel: {},
 }
 
+// isIgnoreFields 判断字段是否为忽略字段
+// 忽略字段包括数据库自动维护的字段（如ID、创建时间、更新时间、删除时间等）
+// 以及用户指定的falseColumn参数中包含的字段
+//
+// 参数:
+//
+//	colName: 要检查的字段名称
+//	falseColumn: 可选参数，用户指定不忽略的字段列表
+//
+// 返回值:
+//
+//	如果字段是忽略字段则返回true，否则返回false
 func isIgnoreFields(colName string, falseColumn ...string) bool {
 	for _, v := range falseColumn {
 		if colName == v {
@@ -964,13 +976,25 @@ func getHandlerStructCodes(data tmplData, jsonNamedType int) (string, error) {
 }
 
 // customized filter fields
+// tmplExecuteWithFilter 执行模板并根据保留列过滤字段
+//
+// 参数:
+//
+//	data: 模板数据，包含字段信息
+//	tmpl: 要执行的模板
+//	reservedColumns: 可选参数，要保留的列名列表，默认忽略自动维护的字段（如ID、创建时间、更新时间、删除时间等）
+//
+// 返回值:
+//
+//	执行模板后的字符串结果
+//	执行过程中遇到的错误（如果有）
 func tmplExecuteWithFilter(data tmplData, tmpl *template.Template, reservedColumns ...string) (string, error) {
 	var newFields = []tmplField{}
 	for _, field := range data.Fields {
 		if isIgnoreFields(field.ColName, reservedColumns...) {
 			continue
 		}
-		if field.DBDriver == DBDriverMongodb { // mongodb
+		if field.DBDriver == DBDriverMongodb { // mongodb id 列的go类型为string
 			if strings.ToLower(field.Name) == "id" {
 				field.GoType = "string"
 			}
@@ -1291,7 +1315,17 @@ func mysqlToGoType(colTp *types.FieldType, style NullStyle) (name string, path s
 	return name, path, rrField
 }
 
-// nolint
+// goTypeToProto 将go类型转换为proto类型
+//
+// 参数:
+//
+//	fields: 包含字段信息的tmplField切片
+//	jsonNameType: 0表示snake case，1表示camel case
+//	isCommonStyle: 是否为通用样式
+//
+// 返回值:
+//
+//	转换后的tmplField切片
 func goTypeToProto(fields []tmplField, jsonNameType int, isCommonStyle bool) []tmplField {
 	var newFields []tmplField
 	for _, field := range fields {
