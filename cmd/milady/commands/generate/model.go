@@ -106,7 +106,7 @@ using help:
 	_ = cmd.MarkFlagRequired("db-dsn")
 	cmd.Flags().StringVarP(&dbTables, "db-table", "t", "", "table name, multiple names separated by commas")
 	_ = cmd.MarkFlagRequired("db-table")
-	cmd.Flags().BoolVarP(&sqlArgs.IsEmbed, "embed", "e", false, "whether to embed gorm.model struct")
+	cmd.Flags().BoolVarP(&sqlArgs.IsEmbed, "embed", "e", false, "whether to embed gorm.model struct, invalid for mongodb")
 	cmd.Flags().IntVarP(&sqlArgs.JSONNamedType, "json-name-type", "j", 0, "json tags name type, 0:snake case, 1:camel case")
 	cmd.Flags().StringVarP(&outPath, "out", "o", "", "output directory, default is ./model_<time>")
 
@@ -137,10 +137,11 @@ func (g *modelGenerator) generateCode() (string, error) {
 
 	// specify the subdirectory and files
 	subDirs := []string{}
-	// 指定要处理的模板文件, 这是一个模型文件的示例模板
 	subFiles := []string{"internal/apiserver/model/userExample.go"}
 
-	// 配置替换器 ：设置子目录和文件
+	// 配置替换器需要处理的文件
+	//  1. 子目录列表为空并且文件列表为空, 表示处理所有文件
+	//  2. 其中一个不为空, 表示只处理指定的子目录和文件
 	r.SetSubDirsAndFiles(subDirs, subFiles...)
 	// 添加模型代码替换规则
 	fields := g.addFields(r)

@@ -8,6 +8,7 @@ import (
 )
 
 var (
+	// modelStructTmpl 模型结构体和自定义表名函数模板
 	modelStructTmpl    *template.Template
 	modelStructTmplRaw = `
 {{- if .Comment -}}
@@ -26,6 +27,7 @@ func (m *{{.TableName}}) TableName() string {
 {{end}}
 `
 
+	// tableColumnsTmpl 表字段名白名单，用于防止SQL注入攻击
 	tableColumnsTmpl    *template.Template
 	tableColumnsTmplRaw = `
 // {{.TableName}}ColumnNames Whitelist for custom query fields to prevent sql injection attacks
@@ -36,6 +38,7 @@ var {{.TableName}}ColumnNames = map[string]bool{
 }
 `
 
+	// modelTmpl 导入包和应用模型结构体模板
 	modelTmpl    *template.Template
 	modelTmplRaw = `package {{.Package}}
 {{if .ImportPath}}

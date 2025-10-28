@@ -115,14 +115,18 @@ func (r *replacerInfo) GetFiles() []string {
 }
 
 // SetSubDirsAndFiles set up processing of specified subdirectories, files in other directories are ignored
+// 设置只处理指定的子目录和文件, 其他目录下的文件会被忽略
+// 匹配的子目录和文件会被添加到文件列表中
 func (r *replacerInfo) SetSubDirsAndFiles(subDirs []string, subFiles ...string) {
+	// 兼容windows系统，批量转换路径分隔符
 	subDirs = r.convertPathsDelimiter(subDirs...)
 	subFiles = r.convertPathsDelimiter(subFiles...)
 
 	var files []string
 	isExistFile := make(map[string]struct{}) // use map to avoid duplicate files
-	for _, file := range r.files {
-		for _, dir := range subDirs {
+	for _, file := range r.files {           // r.files 初始化提供的文件列表
+		for _, dir := range subDirs { // 遍历指定的子目录列表
+			// 初始化文件路径匹配子目录路径, 匹配成功, 则添加到文件列表
 			if isSubPath(file, dir) {
 				if _, ok := isExistFile[file]; ok {
 					continue
@@ -131,7 +135,8 @@ func (r *replacerInfo) SetSubDirsAndFiles(subDirs []string, subFiles ...string) 
 				files = append(files, file)
 			}
 		}
-		for _, sf := range subFiles {
+		for _, sf := range subFiles { // 遍历指定的文件列表
+			// 初始化文件路径匹配子文件路径, 匹配成功, 则添加到文件列表
 			if isMatchFile(file, sf) {
 				if _, ok := isExistFile[file]; ok {
 					continue
@@ -174,7 +179,7 @@ func (r *replacerInfo) SetOutputDir(absPath string, name ...string) error {
 	}
 
 	// output to the current directory
-	subPath := strings.Join(name, "_")
+	subPath := strings.Join(name, "_") // 用于配置生成文件名的前缀，后缀是时间戳
 	pwd, err := os.Getwd()
 	if err != nil {
 		return err
@@ -392,6 +397,9 @@ func (r *replacerInfo) isInIgnoreDir(file string) bool {
 	return isIgnore
 }
 
+// isForbiddenFile 判断文件是否在指定路径下
+//  1. 如果是windows系统，批量转换路径分隔符
+//  2. 判断 file 是否包含 path
 func isForbiddenFile(file string, path string) bool {
 	if gofile.IsWindows() {
 		path = strings.ReplaceAll(path, "/", "\\")
@@ -437,7 +445,9 @@ func (r *replacerInfo) convertPathDelimiter(filePath string) string {
 }
 
 // if windows, batch convert path splitters
+// 如果是windows系统，批量转换路径分隔符
 func (r *replacerInfo) convertPathsDelimiter(filePaths ...string) []string {
+	fmt.Printf("filePaths=%v\n", filePaths)
 	if r.isActual && gofile.IsWindows() {
 		filePathsTmp := []string{}
 		for _, dir := range filePaths {
@@ -504,18 +514,27 @@ func isFirstAlphabet(str string) bool {
 	return false
 }
 
+// isSubPath 比对 filePath 是否包含 subPath
+//  1. 从 filePath 中提取目录部分
+//  2. 检查 subPath 是否是 dir 的子路径
 func isSubPath(filePath string, subPath string) bool {
 	dir, _ := filepath.Split(filePath)
 	return strings.Contains(dir, subPath)
 }
 
+// isMatchFile 比对 filePath 和 sf 是否匹配
+//  1. 文件名不匹配，直接返回false
+//  2. 根据操作系统，批量转换路径分隔符
+//  3. 比较 dir1 是否包含 dir2, 如果包含，返回true
 func isMatchFile(filePath string, sf string) bool {
 	dir1, file1 := filepath.Split(filePath)
 	dir2, file2 := filepath.Split(sf)
+	// 文件名不匹配，直接返回false
 	if file1 != file2 {
 		return false
 	}
 
+	// 根据操作系统，批量转换路径分隔符
 	if gofile.IsWindows() {
 		dir1 = strings.ReplaceAll(dir1, "/", "\\")
 		dir2 = strings.ReplaceAll(dir2, "/", "\\")
@@ -524,6 +543,7 @@ func isMatchFile(filePath string, sf string) bool {
 		dir2 = strings.ReplaceAll(dir2, "\\", "/")
 	}
 
+	// 比较 dir1 是否包含 dir2, 如果包含，返回true
 	l1, l2 := len(dir1), len(dir2)
 	if l1 >= l2 && dir1[l1-l2:] == dir2 {
 		return true

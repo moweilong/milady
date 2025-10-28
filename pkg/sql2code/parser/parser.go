@@ -164,14 +164,14 @@ func ParseSQL(sql string, options ...Option) (map[string]string, error) {
 type tmplData struct {
 	TableNamePrefix string
 
-	RawTableName    string // raw table name, example: foo_bar, 原始表名
-	TableName       string // table name in pascal case, example: FooBar
-	TName           string // table name first letter in lower case, example: fooBar
-	NameFunc        bool
+	RawTableName    string      // raw table name, example: foo_bar, 原始表名
+	TableName       string      // table name in pascal case, example: FooBar
+	TName           string      // table name first letter in lower case, example: fooBar
+	NameFunc        bool        // 是否使用自定义的表名函数
 	Fields          []tmplField // 表字段信息
-	Comment         string
-	SubStructs      string // sub structs for model
-	ProtoSubStructs string // sub structs for protobuf
+	Comment         string      // 表注释
+	SubStructs      string      // sub structs for model
+	ProtoSubStructs string      // sub structs for protobuf
 	DBDriver        string
 
 	CrudInfo *CrudInfo
@@ -195,6 +195,10 @@ type rewriterField struct {
 	path   string
 }
 
+// isCommonStyle return true, such as:
+// not use default id primary key and
+// not use default mongodb driver and
+// not embed struct
 func (d tmplData) isCommonStyle(isEmbed bool) bool {
 	if d.DBDriver != DBDriverMongodb && !isEmbed && !d.CrudInfo.isIDPrimaryKey() {
 		return true
@@ -385,6 +389,7 @@ const (
 	__type__       = "__type__"       //nolint
 )
 
+// replaceFields 替换字段类型为 sgorm.Model
 var replaceFields = map[string]string{
 	__mysqlModel__: "sgorm.Model",
 	__type__:       "",
@@ -458,8 +463,8 @@ func replaceCommentNewline(comment string) string {
 }
 
 type codeText struct {
-	importPaths   []string
-	modelStruct   string
+	importPaths   []string // 需要导入的包路径
+	modelStruct   string   // model模块的 struct 和 自定义表名函数
 	modelJSON     string
 	updateFields  string
 	handlerStruct string
@@ -674,6 +679,7 @@ func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
 		return &codeText{tableInfo: tableInfo.getCode()}, nil
 	}
 
+	// 生成 model 结构体代码
 	modelStructCode, importPaths, err := getModelStructCode(data, importPath, opt.IsEmbed, opt.JSONNamedType)
 	if err != nil {
 		return nil, err
@@ -732,12 +738,14 @@ func makeCode(stmt *ast.CreateTableStmt, opt options) (*codeText, error) {
 	}, nil
 }
 
-// nolint
+// getModelStructCode 生成 model 结构体代码
 func getModelStructCode(data tmplData, importPaths []string, isEmbed bool, jsonNamedType int) (string, []string, error) {
 	// filter to ignore field fields
 	var newFields = []tmplField{}
 	var newImportPaths = []string{}
+	// 启用嵌入 gorm.Model 结构体
 	if isEmbed {
+		// tmplField 占位
 		newFields = append(newFields, tmplField{
 			Name:    __mysqlModel__,
 			ColName: __mysqlModel__,
@@ -748,6 +756,7 @@ func getModelStructCode(data tmplData, importPaths []string, isEmbed bool, jsonN
 
 		isHaveTimeType := false
 		for _, field := range data.Fields {
+			// 忽略特定字段
 			if isIgnoreFields(field.ColName) {
 				continue
 			}
@@ -782,8 +791,8 @@ func getModelStructCode(data tmplData, importPaths []string, isEmbed bool, jsonN
 				newImportPaths = append(newImportPaths, path)
 			}
 		}
-		newImportPaths = append(newImportPaths, "github.com/go-dev-frame/sponge/pkg/sgorm")
-	} else {
+		newImportPaths = append(newImportPaths, "github.com/moweilong/milady/pkg/sgorm")
+	} else { // 非嵌入  gorm.Model  结构体
 		for _, field := range data.Fields {
 			if strings.Contains(field.GoType, "time.Time") {
 				field.GoType = "*time.Time"
@@ -794,7 +803,6 @@ func getModelStructCode(data tmplData, importPaths []string, isEmbed bool, jsonN
 					field.GoType = goTypeOID
 					importPaths = append(importPaths, "go.mongodb.org/mongo-driver/bson/primitive")
 				}
-
 			default:
 				// force conversion of ID field to uint64 type
 				if field.Name == "ID" {
@@ -829,9 +837,11 @@ func getModelStructCode(data tmplData, importPaths []string, isEmbed bool, jsonN
 		return "", nil, fmt.Errorf("modelStructTmpl format.Source error: %v", err)
 	}
 	structCode := string(code)
+	fmt.Println("模板生成的 modelStruct, 下一步: restore the real embedded fields", structCode)
 	// restore the real embedded fields
 	if isEmbed {
 		gormEmbed := replaceFields[__mysqlModel__]
+		// when jsonNamedType == 0 , generated `sgorm.Model2 `gorm:"embedded"` // embed id and time`
 		if jsonNamedType == 0 { // snake case
 			gormEmbed += "2" // sgorm.Model2
 		}
@@ -849,15 +859,19 @@ func getModelStructCode(data tmplData, importPaths []string, isEmbed bool, jsonN
 		structCode = strings.ReplaceAll(structCode, `bson:"id" json:"id"`, `bson:"_id" json:"id"`)
 	}
 
+	// 生成表字段名白名单代码
 	tableColumnsCode, err := getTableColumnsCode(data, isEmbed)
 	if err != nil {
 		return "", nil, err
 	}
+	fmt.Println("生成的表字段名白名单代码", string(tableColumnsCode))
 	structCode += string(tableColumnsCode)
-
+	fmt.Println("合并后的 modelStruct", structCode)
+	fmt.Println("合并后的 importPaths", newImportPaths)
 	return structCode, newImportPaths, nil
 }
 
+// getTableColumnsCode 生成表字段名白名单代码, generated map[string]bool
 func getTableColumnsCode(data tmplData, isEmbed bool) ([]byte, error) {
 	if data.DBDriver == DBDriverMongodb {
 		for _, field := range data.Fields {
