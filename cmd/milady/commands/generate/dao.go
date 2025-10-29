@@ -14,16 +14,24 @@ import (
 )
 
 type daoGenerator struct {
-	moduleName      string
-	dbDriver        string
+	// moduleName go.mod module name
+	moduleName string
+	// dbDriver database driver name, e.g: mysql, postgres, sqlite, sqlserver
+	dbDriver string
+	// isIncludeInitDB whether to include init db code, default is false
 	isIncludeInitDB bool
-	codes           map[string]string
-	outPath         string
-	isEmbed         bool
-	isExtendedAPI   bool
-	serverName      string
-	suitedMonoRepo  bool
+	// codes sql2code generated codes
+	codes   map[string]string
+	outPath string
+	// isEmbed whether to embed gorm.Model, default is false
+	isEmbed bool
+	// isExtendedAPI whether to include extended api code
+	isExtendedAPI bool
+	// serverName server name
+	serverName     string
+	suitedMonoRepo bool
 
+	// fields rules to replace
 	fields []replacer.Field
 }
 
@@ -67,7 +75,6 @@ func DaoCommand(parentName string) *cobra.Command {
 		SilenceUsage:  true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			mdName, srvName, smr := getNamesFromOutDir(outPath)
-			fmt.Printf("getNamesFromOutDir: mdName = %s, srvName = %s, smr = %v\n", mdName, srvName, smr)
 			if mdName != "" {
 				moduleName = mdName
 				serverName = srvName
@@ -132,7 +139,7 @@ using help:
 		},
 	}
 
-	cmd.Flags().StringVarP(&moduleName, "module-name", "m", "", "module-name is the name of the module in the go.mod file")
+	cmd.Flags().StringVarP(&moduleName, "module-name", "m", "", "module-name is the name of the module in the go.mod file, recommend to use github.com/username/yourModuleName")
 	//_ = cmd.MarkFlagRequired("module-name")
 	cmd.Flags().StringVarP(&sqlArgs.DBDriver, "db-driver", "k", "mysql", "database driver, support mysql, mongodb, postgresql, sqlite")
 	cmd.Flags().StringVarP(&sqlArgs.DBDsn, "db-dsn", "d", "", "database content address, e.g. user:password@(host:port)/database. Note: if db-driver=sqlite, db-dsn must be a local sqlite db file, e.g. --db-dsn=/tmp/milady_sqlite.db") //nolint
@@ -161,6 +168,7 @@ func (g *daoGenerator) generateCode() (string, error) {
 	subDirs := []string{}
 	subFiles := []string{}
 
+	// selectFiles is a subset of subFiles, init with default values
 	selectFiles := map[string][]string{
 		"internal/cache": {
 			"userExample.go", "userExample_test.go",
@@ -168,13 +176,14 @@ func (g *daoGenerator) generateCode() (string, error) {
 		"internal/dao": {
 			"userExample.go", "userExample_test.go",
 		},
-		"internal/model": {
+		"internal/apiserver/model": {
 			"userExample.go",
 		},
 	}
 
 	info := g.codes[parser.CodeTypeCrudInfo]
 	crudInfo, _ := unmarshalCrudInfo(info)
+	// if db table is use custom pk, re set the initialization value of selectFiles
 	if crudInfo.CheckCommonType() {
 		selectFiles = map[string][]string{
 			"internal/cache": {
@@ -183,7 +192,7 @@ func (g *daoGenerator) generateCode() (string, error) {
 			"internal/dao": {
 				"userExample.go.tpl",
 			},
-			"internal/model": {
+			"internal/apiserver/model": {
 				"userExample.go",
 			},
 		}
@@ -251,6 +260,7 @@ func (g *daoGenerator) generateCode() (string, error) {
 func (g *daoGenerator) addFields(r replacer.Replacer) []replacer.Field {
 	var fields []replacer.Field
 	fields = append(fields, g.fields...)
+	// model rule
 	fields = append(fields, deleteFieldsMark(r, modelFile, startMark, endMark)...)
 	fields = append(fields, deleteFieldsMark(r, daoFile, startMark, endMark)...)
 	fields = append(fields, deleteFieldsMark(r, daoMgoFile, startMark, endMark)...)
@@ -352,6 +362,7 @@ func daoMongoDBExtendedAPI(r replacer.Replacer) (map[string][]string, []replacer
 	return replaceFiles, fields
 }
 
+// commonDaoFields set up the rules of dao for replacer
 func commonDaoFields(r replacer.Replacer) []replacer.Field {
 	var fields []replacer.Field
 
@@ -368,6 +379,7 @@ func commonDaoFields(r replacer.Replacer) []replacer.Field {
 	return fields
 }
 
+// commonDaoExtendedFields set up the rules of dao extended for replacer
 func commonDaoExtendedFields(r replacer.Replacer) []replacer.Field {
 	var fields []replacer.Field
 

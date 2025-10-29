@@ -71,35 +71,57 @@ const (
 )
 
 var (
-	undeterminedDBDriver = "undetermined" // used in services created based on protobuf.
+	// undeterminedDBDriver "undetermined", used in services created based on protobuf.
+	undeterminedDBDriver = "undetermined"
 
-	modelFile     = "model/userExample.go"
+	// modelFile "model/userExample.go"
+	modelFile = "model/userExample.go"
+	// modelFileMark "// todo generate model code to here"
 	modelFileMark = "// todo generate model code to here"
 
-	databaseInitDBFile     = "database/init.go"
+	// databaseInitDBFile "database/init.go"
+	databaseInitDBFile = "database/init.go"
+	// databaseInitDBFileMark "// todo generate initialisation database code here"
 	databaseInitDBFileMark = "// todo generate initialisation database code here"
 
-	showDbNameMark  = "// todo show db driver name here"
+	// showDbNameMark "// todo show db driver name here"
+	showDbNameMark = "// todo show db driver name here"
+	// CurrentDbDriver "// db driver is %s"
 	CurrentDbDriver = func(dbDriver string) string { return "// db driver is " + dbDriver }
 
+	// cacheFile "cache/cacheNameExample.go"
 	cacheFile = "cache/cacheNameExample.go"
 
-	daoFile     = "dao/userExample.go"
-	daoMgoFile  = "dao/userExample.go.mgo"
+	// daoFile "dao/userExample.go"
+	daoFile = "dao/userExample.go"
+	// daoMgoFile "dao/userExample.go.mgo"
+	daoMgoFile = "dao/userExample.go.mgo"
+	// daoFileMark "// todo generate the update fields code to here"
 	daoFileMark = "// todo generate the update fields code to here"
+	// daoTestFile "dao/userExample_test.go"
 	daoTestFile = "dao/userExample_test.go"
 
-	typesFile         = "types/userExample_types.go"
-	typesMgoFile      = "types/userExample_types.go.mgo"
-	handlerFileMark   = "// todo generate the request and response struct to here"
-	handlerTestFile   = "handler/userExample_test.go"
-	handlerPbFile     = "handler/userExample_logic.go"
+	// typesFile "types/userExample_types.go"
+	typesFile = "types/userExample_types.go"
+	// typesMgoFile "types/userExample_types.go.mgo"
+	typesMgoFile = "types/userExample_types.go.mgo"
+	// handlerFileMark "// todo generate the request and response struct to here"
+	handlerFileMark = "// todo generate the request and response struct to here"
+	// handlerTestFile "handler/userExample_test.go"
+	handlerTestFile = "handler/userExample_test.go"
+	// handlerPbFile "handler/userExample_logic.go"
+	handlerPbFile = "handler/userExample_logic.go"
+	// handlerPbTestFile "handler/userExample_logic_test.go"
 	handlerPbTestFile = "handler/userExample_logic_test.go"
 
+	// handlerLogicFile "handler/userExample_logic.go"
 	handlerLogicFile = "handler/userExample_logic.go"
+	// serviceLogicFile "service/userExample.go"
 	serviceLogicFile = "service/userExample.go"
-	embedTimeMark    = "// todo generate the conversion createdAt and updatedAt code here"
+	// embedTimeMark "// todo generate the conversion createdAt and updatedAt code here"
+	embedTimeMark = "// todo generate the conversion createdAt and updatedAt code here"
 
+	// httpFile "server/http.go"
 	httpFile = "server/http.go"
 
 	protoFile     = "v1/userExample.proto"
@@ -182,6 +204,7 @@ func symbolConvert(str string, additionalChar ...string) []byte {
 	return []byte(strings.Replace(str, "//", "#", 1) + char)
 }
 
+// convertServerName convert serverName to snake case
 func convertServerName(serverName string) string {
 	return strings.ReplaceAll(serverName, "-", "_")
 }
@@ -398,8 +421,8 @@ func saveEmptySwaggerJSON(outputDir string) error {
 	return nil
 }
 
-// get moduleName and serverName from directory
-// the file gen.info is saved in the directory eg: docs/gen.info
+// getNamesFromOutDir get moduleName, serverName, suitedMonoRepo from outDir
+// ensure dir + "/docs/gen.info" exists
 func getNamesFromOutDir(dir string) (moduleName string, serverName string, suitedMonoRepo bool) {
 	if dir == "" {
 		return "", "", false
@@ -559,6 +582,9 @@ func getEmbedTimeCode(isEmbed bool) string {
 	return ""
 }
 
+// getExpectedSQLForDeletion get expected sql for deletion
+// replace `expectedSQLForDeletion := \"UPDATE .*\"` to `expectedSQLForDeletion := \"DELETE .*\"`
+// if isEmbed is false
 func getExpectedSQLForDeletion(isEmbed bool) string {
 	if !isEmbed {
 		return strings.ReplaceAll(expectedSQLForDeletion, "UPDATE", "DELETE")
@@ -567,6 +593,8 @@ func getExpectedSQLForDeletion(isEmbed bool) string {
 	return expectedSQLForDeletion
 }
 
+// getExpectedSQLForDeletionField get expected sql for deletion replacer rules
+// if isEmbed is false, then replace `expectedSQLForDeletion := \"UPDATE .*\"` to `expectedSQLForDeletion := \"DELETE .*\"`
 func getExpectedSQLForDeletionField(isEmbed bool) []replacer.Field {
 	var fields []replacer.Field
 	esql := getExpectedSQLForDeletion(isEmbed)
@@ -793,6 +821,9 @@ func SubServerCodeFields(moduleName string, serverName string) []replacer.Field 
 	}
 }
 
+// changeOutPath change outPath to serverName if outPath is empty
+// or "." or "./" or ".\\" or serverName or "./" + serverName or ".\\" + serverName
+// otherwise, append serverName to outPath
 func changeOutPath(outPath string, serverName string) string {
 	switch outPath {
 	case "", ".", "./", ".\\", serverName, "./" + serverName, ".\\" + serverName:
@@ -961,6 +992,7 @@ func unmarshalCrudInfo(str string) (*parser.CrudInfo, error) {
 	return crudInfo, nil
 }
 
+// getTemplateFiles get template files from selectFiles
 func getTemplateFiles(files map[string][]string) []string {
 	var templateFiles []string
 	for dir, filenames := range files {
@@ -973,6 +1005,10 @@ func getTemplateFiles(files map[string][]string) []string {
 	return templateFiles
 }
 
+// replaceFilesContent setup template files content replace rule for replacer
+//
+// args:
+//   - files: template files
 func replaceFilesContent(r replacer.Replacer, files []string, crudInfo *parser.CrudInfo) ([]replacer.Field, error) {
 	var fields []replacer.Field
 
@@ -989,6 +1025,10 @@ func replaceFilesContent(r replacer.Replacer, files []string, crudInfo *parser.C
 	return fields, nil
 }
 
+// replaceTemplateFileContent setup template file content replace rule for replacer
+//
+// args:
+//   - file: template file
 func replaceTemplateFileContent(r replacer.Replacer, file string, crudInfo *parser.CrudInfo) (field replacer.Field, err error) {
 	var data []byte
 	data, err = r.ReadFile(file)
@@ -997,6 +1037,7 @@ func replaceTemplateFileContent(r replacer.Replacer, file string, crudInfo *pars
 	}
 
 	content := string(data)
+	// {{{.ColumnNameCamelFCL}}} handler use
 	if strings.Contains(content, "{{{.ColumnNameCamelFCL}}}") {
 		content = strings.ReplaceAll(content, "{{{.ColumnNameCamelFCL}}}", fmt.Sprintf("{%s}", crudInfo.ColumnNameCamelFCL))
 	}

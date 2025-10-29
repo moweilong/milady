@@ -32,33 +32,35 @@ func CacheCommand(parentName string) *cobra.Command {
 		Short: "Generate cache code",
 		Long:  "Generate cache code.",
 		Example: color.HiBlackString(fmt.Sprintf(`  # Generate kv cache code
-  sponge %s cache --module-name=yourModuleName --cache-name=userToken --key-name=id --key-type=uint64 --value-name=token --value-type=string
+  milady %s cache --module-name=yourModuleName --cache-name=userToken --key-name=id --key-type=uint64 --value-name=token --value-type=string
 
   # Generate kv cache code and specify the server directory, Note: code generation will be canceled when the latest generated file already exists.
-  sponge %s cache --module-name=yourModuleName --cache-name=token --prefix-key=user:token --key-name=id --key-type=uint64 --value-name=token --value-type=string --out=./yourServerDir
+  milady %s cache --module-name=yourModuleName --cache-name=token --prefix-key=user:token --key-name=id --key-type=uint64 --value-name=token --value-type=string --out=./yourServerDir
 
   # If you want the generated code to suited to mono-repo, you need to set the parameter --suited-mono-repo=true --server-name=yourServerName`,
 			parentName, parentName)),
 		SilenceErrors: true,
 		SilenceUsage:  true,
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Get moduleName, serverName, suitedMonoRepo from outDir first
 			mdName, srvName, smr := getNamesFromOutDir(outPath)
 			if mdName != "" {
 				moduleName = mdName
 				serverName = srvName
 				suitedMonoRepo = smr
 			} else if moduleName == "" {
-				return errors.New(`required flag(s) "module-name" not set, use "sponge micro cache -h" for help`)
+				return errors.New(`required flag(s) "module-name" not set, use "milady micro cache -h" for help`)
 			}
 			if suitedMonoRepo {
 				if serverName == "" {
-					return fmt.Errorf(`required flag(s) "server-name" not set, use "sponge %s cache -h" for help`, parentName)
+					return fmt.Errorf(`required flag(s) "server-name" not set, use "milady %s cache -h" for help`, parentName)
 				}
 				serverName = convertServerName(serverName)
 				outPath = changeOutPath(outPath, serverName)
 			}
 			cacheName = strings.ReplaceAll(cacheName, ":", "")
 
+			// anyhow, prefixKey must end with ":"
 			if prefixKey == "" || prefixKey == ":" {
 				prefixKey = cacheName + ":"
 			} else if prefixKey[len(prefixKey)-1] != ':' {
@@ -113,6 +115,7 @@ using help:
 	return cmd
 }
 
+// stringCacheGenerator directly replace the string in the template file.
 type stringCacheGenerator struct {
 	moduleName string
 	cacheName  string
@@ -171,8 +174,8 @@ func (g *stringCacheGenerator) addFields(r replacer.Replacer) []replacer.Field {
 
 	fields = append(fields, []replacer.Field{
 		{
-			Old: "github.com/go-dev-frame/sponge/internal/model",
-			New: g.moduleName + "/internal/model",
+			Old: "github.com/moweilong/milady/internal/apiserver/model",
+			New: g.moduleName + "/internal/apiserver/model",
 		},
 		{
 			Old:             "cacheNameExample",

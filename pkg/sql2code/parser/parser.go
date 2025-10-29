@@ -837,7 +837,7 @@ func getModelStructCode(data tmplData, importPaths []string, isEmbed bool, jsonN
 		return "", nil, fmt.Errorf("modelStructTmpl format.Source error: %v", err)
 	}
 	structCode := string(code)
-	fmt.Println("模板生成的 modelStruct, 下一步: restore the real embedded fields", structCode)
+
 	// restore the real embedded fields
 	if isEmbed {
 		gormEmbed := replaceFields[__mysqlModel__]
@@ -864,10 +864,8 @@ func getModelStructCode(data tmplData, importPaths []string, isEmbed bool, jsonN
 	if err != nil {
 		return "", nil, err
 	}
-	fmt.Println("生成的表字段名白名单代码", string(tableColumnsCode))
+
 	structCode += string(tableColumnsCode)
-	fmt.Println("合并后的 modelStruct", structCode)
-	fmt.Println("合并后的 importPaths", newImportPaths)
 	return structCode, newImportPaths, nil
 }
 

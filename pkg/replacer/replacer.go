@@ -20,12 +20,18 @@ var _ Replacer = (*replacerInfo)(nil)
 // Replacer interface. 一个文本替换器接口，用于替换文件中的文本。
 type Replacer interface {
 	SetReplacementFields(fields []Field)
+	// SetSubDirsAndFiles if subDirs or subFiles not empty, then set r.files to all files in subDirs and subFiles.
 	SetSubDirsAndFiles(subDirs []string, subFiles ...string)
 	SetIgnoreSubDirs(dirs ...string)
 	SetIgnoreSubFiles(filenames ...string)
+	// SetOutputDir set output directory.
+	// if absPath is not empty, return absolute path of absPath.
+	// if absPath is empty, return an automatically generated path with name and timestamp in the current directory.
+	// e.g: /home/milady/mycode/model_150405
 	SetOutputDir(absDir string, name ...string) error
 	GetOutputDir() string
 	GetSourcePath() string
+	// SaveFiles save file with setting
 	SaveFiles() error
 	ReadFile(filename string) ([]byte, error)
 	GetFiles() []string
@@ -34,17 +40,27 @@ type Replacer interface {
 
 // replacerInfo replacer information
 type replacerInfo struct {
-	path              string   // template directory or file
-	fs                embed.FS // Template directory corresponding to binary objects
-	isActual          bool     // true: use os to manipulate files, false: use fs to manipulate files
-	files             []string // list of template files
-	ignoreFiles       []string // ignore the list of replaced files, e.g. ignore.txt or myDir/ignore.txt
-	ignoreDirs        []string // ignore processed subdirectories
-	replacementFields []Field  // characters to be replaced when converting from a template file to a new file
-	outPath           string   // the directory where the file is saved after replacement
+	// template directory or file
+	path string
+	// Template directory corresponding to binary objects
+	fs embed.FS
+	// true: use os to manipulate files, false: use embed.FS to manipulate files
+	// New() default is true, NewFS() default is false
+	isActual bool
+	// list of template files
+	files []string
+	// ignore the list of replaced files, default is "", e.g. ignore.txt or myDir/ignore.txt
+	ignoreFiles []string
+	// ignore processed subdirectories, default is ""
+	ignoreDirs []string
+	// characters to be replaced when converting from a template file to a new file, default is []Field{}
+	replacementFields []Field
+	// the directory where the file is saved after replacement, default is ""
+	outPath string
 }
 
 // New create replacer with local directory
+// path e.g: /home/milady/.milady
 func New(path string) (Replacer, error) {
 	files, err := gofile.ListFiles(path)
 	if err != nil {
@@ -61,6 +77,7 @@ func New(path string) (Replacer, error) {
 }
 
 // NewFS create replacer with embed.FS
+// path e.g: /home/milady/.milady
 func NewFS(path string, fs embed.FS) (Replacer, error) {
 	files, err := listFiles(path, fs)
 	if err != nil {
@@ -114,19 +131,15 @@ func (r *replacerInfo) GetFiles() []string {
 	return r.files
 }
 
-// SetSubDirsAndFiles set up processing of specified subdirectories, files in other directories are ignored
-// 设置只处理指定的子目录和文件, 其他目录下的文件会被忽略
-// 匹配的子目录和文件会被添加到文件列表中
+// SetSubDirsAndFiles if subDirs or subFiles not empty, then set r.files to all files in subDirs and subFiles.
 func (r *replacerInfo) SetSubDirsAndFiles(subDirs []string, subFiles ...string) {
-	// 兼容windows系统，批量转换路径分隔符
 	subDirs = r.convertPathsDelimiter(subDirs...)
 	subFiles = r.convertPathsDelimiter(subFiles...)
 
 	var files []string
 	isExistFile := make(map[string]struct{}) // use map to avoid duplicate files
-	for _, file := range r.files {           // r.files 初始化提供的文件列表
-		for _, dir := range subDirs { // 遍历指定的子目录列表
-			// 初始化文件路径匹配子目录路径, 匹配成功, 则添加到文件列表
+	for _, file := range r.files {           // r.files all files of milady
+		for _, dir := range subDirs {
 			if isSubPath(file, dir) {
 				if _, ok := isExistFile[file]; ok {
 					continue
@@ -135,8 +148,7 @@ func (r *replacerInfo) SetSubDirsAndFiles(subDirs []string, subFiles ...string) 
 				files = append(files, file)
 			}
 		}
-		for _, sf := range subFiles { // 遍历指定的文件列表
-			// 初始化文件路径匹配子文件路径, 匹配成功, 则添加到文件列表
+		for _, sf := range subFiles {
 			if isMatchFile(file, sf) {
 				if _, ok := isExistFile[file]; ok {
 					continue
@@ -164,10 +176,12 @@ func (r *replacerInfo) SetIgnoreSubDirs(dirs ...string) {
 	r.ignoreDirs = append(r.ignoreDirs, dirs...)
 }
 
-// SetOutputDir specify the output directory, preferably using absPath, if absPath is empty,
-// the output directory is automatically generated in the current directory according to the name of the parameter
+// SetOutputDir set output directory.
+// if absPath is not empty, return absolute path of absPath.
+// if absPath is empty, return an automatically generated path with name and timestamp in the current directory.
+// e.g: /home/milady/mycode/model_150405
 func (r *replacerInfo) SetOutputDir(absPath string, name ...string) error {
-	// output to the specified directory
+	// output e.g: /home/milady/mycode/model
 	if absPath != "" {
 		abs, err := filepath.Abs(absPath)
 		if err != nil {
@@ -178,12 +192,12 @@ func (r *replacerInfo) SetOutputDir(absPath string, name ...string) error {
 		return nil
 	}
 
-	// output to the current directory
-	subPath := strings.Join(name, "_") // 用于配置生成文件名的前缀，后缀是时间戳
+	subPath := strings.Join(name, "_")
 	pwd, err := os.Getwd()
 	if err != nil {
 		return err
 	}
+	// output e.g: /home/milady/mycode/model_150405
 	r.outPath = pwd + gofile.GetPathDelimiter() + subPath + "_" + time.Now().Format("150405")
 	return nil
 }
@@ -220,6 +234,7 @@ func (r *replacerInfo) ReadFile(filename string) ([]byte, error) {
 
 // SaveFiles save file with setting
 func (r *replacerInfo) SaveFiles() error {
+	// TODO delete this line
 	if r.outPath == "" {
 		r.outPath = gofile.GetRunPath() + gofile.GetPathDelimiter() + "generate_" + time.Now().Format("150405")
 	}
@@ -227,7 +242,9 @@ func (r *replacerInfo) SaveFiles() error {
 	var existFiles []string
 	var writeData = make(map[string][]byte)
 
+	// process replacer files
 	for _, file := range r.files {
+		// skip ignore files or dirs
 		if r.isInIgnoreDir(file) || r.isIgnoreFile(file) {
 			continue
 		}
@@ -235,6 +252,7 @@ func (r *replacerInfo) SaveFiles() error {
 		var data []byte
 		var err error
 
+		// read file content
 		if r.isActual {
 			data, err = os.ReadFile(file) // read from local files
 		} else {
@@ -249,10 +267,11 @@ func (r *replacerInfo) SaveFiles() error {
 			data = bytes.ReplaceAll(data, []byte(field.Old), []byte(field.New))
 		}
 
-		// get new file path
+		// file name splicing with outPath
 		newFilePath := r.getNewFilePath(file)
 		dir, filename := filepath.Split(newFilePath)
-		// replace file names and directory names
+
+		// replace dir and filename with replacement rules
 		for _, field := range r.replacementFields {
 			if strings.Contains(dir, field.Old) {
 				dir = strings.ReplaceAll(dir, field.Old, field.New)
@@ -266,24 +285,28 @@ func (r *replacerInfo) SaveFiles() error {
 			}
 		}
 
+		// check if the file already exists
 		if gofile.IsExists(newFilePath) {
 			existFiles = append(existFiles, newFilePath)
 		}
+		// map of write file content with new file path
 		writeData[newFilePath] = data
 	}
 
+	// break if outPath have existing files
 	if len(existFiles) > 0 {
-		//nolint
 		return fmt.Errorf("existing files detected\n    %s\nCode generation has been cancelled\n",
 			strings.Join(existFiles, "\n    "))
 	}
 
+	// break if generate file is in r.path
 	for file, data := range writeData {
 		if isForbiddenFile(file, r.path) {
 			return fmt.Errorf("disable writing file(%s) to directory(%s), file size=%d", file, r.path, len(data))
 		}
 	}
 
+	// save files to file system
 	for file, data := range writeData {
 		err := saveToNewFile(file, data)
 		if err != nil {
@@ -408,13 +431,9 @@ func isForbiddenFile(file string, path string) bool {
 	return strings.Contains(file, path)
 }
 
+// getNewFilePath delete the path prefix r.path of the file and add the outPath prefix
+// e.g: /home/murphy/workspace/golang/src/github.com/moweilong/milady/dao_172320 + /internal/apiserver/model/aa.go
 func (r *replacerInfo) getNewFilePath(file string) string {
-	//var newFilePath string
-	//if r.isActual {
-	//	newFilePath = r.outPath + strings.Replace(file, r.path, "", 1)
-	//} else {
-	//	newFilePath = r.outPath + strings.Replace(file, r.path, "", 1)
-	//}
 	newFilePath := r.outPath + strings.Replace(file, r.path, "", 1)
 
 	if gofile.IsWindows() {
@@ -447,7 +466,6 @@ func (r *replacerInfo) convertPathDelimiter(filePath string) string {
 // if windows, batch convert path splitters
 // 如果是windows系统，批量转换路径分隔符
 func (r *replacerInfo) convertPathsDelimiter(filePaths ...string) []string {
-	fmt.Printf("filePaths=%v\n", filePaths)
 	if r.isActual && gofile.IsWindows() {
 		filePathsTmp := []string{}
 		for _, dir := range filePaths {
@@ -458,6 +476,9 @@ func (r *replacerInfo) convertPathsDelimiter(filePaths ...string) []string {
 	return filePaths
 }
 
+// saveToNewFile save data to filePath
+//  1. create directory if not exists
+//  2. save file
 func saveToNewFile(filePath string, data []byte) error {
 	// create directory
 	dir, _ := filepath.Split(filePath)
@@ -529,12 +550,11 @@ func isSubPath(filePath string, subPath string) bool {
 func isMatchFile(filePath string, sf string) bool {
 	dir1, file1 := filepath.Split(filePath)
 	dir2, file2 := filepath.Split(sf)
-	// 文件名不匹配，直接返回false
+
 	if file1 != file2 {
 		return false
 	}
 
-	// 根据操作系统，批量转换路径分隔符
 	if gofile.IsWindows() {
 		dir1 = strings.ReplaceAll(dir1, "/", "\\")
 		dir2 = strings.ReplaceAll(dir2, "/", "\\")
