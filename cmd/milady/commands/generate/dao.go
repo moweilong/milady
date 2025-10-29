@@ -176,7 +176,7 @@ func (g *daoGenerator) generateCode() (string, error) {
 		"internal/dao": {
 			"userExample.go", "userExample_test.go",
 		},
-		"internal/apiserver/model": {
+		"internal/model": {
 			"userExample.go",
 		},
 	}

@@ -112,7 +112,7 @@ func (g *modelGenerator) generateCode() (string, error) {
 	// subDirs subdirectories of milady, if not empty, will process all files in subDirs.
 	// subFiles example files, the content will be replaced by the generated model code.
 	subDirs := []string{}
-	subFiles := []string{"internal/apiserver/model/userExample.go"}
+	subFiles := []string{"internal/model/userExample.go"}
 
 	// replacer need to process the specified subdirectories and files.
 	r.SetSubDirsAndFiles(subDirs, subFiles...)
