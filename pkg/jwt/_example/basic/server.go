@@ -31,7 +31,7 @@ type User struct {
 func init() {
 	port = os.Getenv("PORT")
 	if port == "" {
-		port = "8000"
+		port = "5555"
 	}
 }
 
@@ -86,10 +86,8 @@ func initParams() *jwt.GinJWTMiddleware {
 		Unauthorized:    unauthorized(),
 		LogoutResponse:  logoutResponse(),
 		TokenLookup:     "header: Authorization, query: token, cookie: jwt",
-		// TokenLookup: "query:token",
-		// TokenLookup: "cookie:token",
-		TokenHeadName: "Bearer",
-		TimeFunc:      time.Now,
+		TokenHeadName:   "Bearer",
+		TimeFunc:        time.Now,
 	}
 }
 
